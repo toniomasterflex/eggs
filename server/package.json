@@ -1,0 +1,29 @@
+{
+  "name": "eggs-server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Serveur d'Eggs : comptes, amis, messages et interactions en temps réel.",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "start": "tsx src/index.ts",
+    "smoke": "tsx src/smoke.ts",
+    "ami": "tsx src/ami.ts",
+    "remove-ami": "tsx src/remove-ami.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@electric-sql/pglite": "^0.5.8",
+    "@fastify/cors": "^11.3.0",
+    "@fastify/websocket": "^11.3.1",
+    "fastify": "^5.12.5",
+    "ws": "^8.21.3",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.2",
+    "@types/ws": "^8.18.1",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2"
+  }
+}

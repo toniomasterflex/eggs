@@ -1,0 +1,766 @@
+html,
+body,
+#root {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  background: transparent;
+  overflow: hidden;
+  user-select: none;
+}
+
+.stage {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ---------- Déplacement horizontal (arrivée / départ) ---------- */
+
+/* Par défaut : caché, poussé hors de la fenêtre (donc hors de l'écran) */
+.mover {
+  transform: translateX(140px);
+}
+
+.stage[data-phase="arriving"] .mover {
+  animation: arrive 1.4s linear forwards;
+}
+.stage[data-phase="visible"] .mover,
+.stage[data-phase="interacting"] .mover {
+  transform: translateX(0);
+}
+.stage[data-phase="exiting"] .mover {
+  animation: leave 1.1s linear forwards;
+}
+
+@keyframes arrive {
+  from { transform: translateX(140px); }
+  to   { transform: translateX(0); }
+}
+@keyframes leave {
+  from { transform: translateX(0); }
+  to   { transform: translateX(140px); }
+}
+
+/* ---------- Le poussin (temporaire) ---------- */
+
+.creature {
+  position: relative;
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  background: #ffd84d;
+  box-shadow: inset -6px -8px 0 rgba(0, 0, 0, 0.08);
+  transform-origin: 50% 100%;
+}
+
+.stage[data-phase="visible"] .creature {
+  cursor: pointer;
+}
+
+.eye {
+  position: absolute;
+  top: 34px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #2b2b2b;
+}
+.eye.left { left: 28px; }
+.eye.right { right: 28px; }
+
+.beak {
+  position: absolute;
+  top: 48px;
+  left: 42px;
+  width: 12px;
+  height: 9px;
+  border-radius: 50%;
+  background: #ff9a3c;
+}
+
+/* ---------- Animations du corps ---------- */
+
+/* Marche : petits sauts pendant l'arrivée et le départ */
+.stage[data-phase="arriving"] .creature,
+.stage[data-phase="exiting"] .creature {
+  animation: walk 0.38s ease-in-out infinite;
+}
+
+/* Repos : respiration très légère */
+.stage[data-phase="visible"] .creature {
+  animation: idle 3s ease-in-out infinite;
+}
+
+/* Réaction au clic : écrasement, rebond, retombée joyeuse */
+.stage[data-phase="interacting"] .creature {
+  animation: joy 0.7s ease-out;
+}
+
+@keyframes walk {
+  0%, 100% { transform: translateY(0) rotate(-3deg); }
+  50%      { transform: translateY(-8px) rotate(3deg); }
+}
+@keyframes idle {
+  0%, 100% { transform: scale(1, 1); }
+  50%      { transform: scale(1.03, 0.97); }
+}
+@keyframes joy {
+  0%   { transform: translateY(0) scale(1, 1); }
+  15%  { transform: translateY(0) scale(1.12, 0.86); }
+  45%  { transform: translateY(-26px) scale(0.95, 1.08); }
+  70%  { transform: translateY(0) scale(1.1, 0.9); }
+  100% { transform: translateY(0) scale(1, 1); }
+}
+
+/* ---------- Bouton menu au-dessus du poussin (NOUVEAU) ---------- */
+
+.mover {
+  position: relative;
+}
+
+.menu-btn {
+  position: absolute;
+  top: -30px;
+  left: 50%;
+  margin-left: -13px;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(24, 24, 30, 0.88);
+  color: #ffd84d;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  cursor: pointer;
+  /* invisible et non cliquable tant que le poussin n'est pas posé */
+  opacity: 0;
+  pointer-events: none;
+  transform: scale(0.6);
+  transition: opacity 0.25s, transform 0.25s, background 0.2s;
+}
+
+.stage[data-phase="visible"] .menu-btn,
+.stage[data-phase="interacting"] .menu-btn {
+  opacity: 1;
+  pointer-events: auto;
+  transform: scale(1);
+}
+
+.menu-btn:hover {
+  background: rgba(45, 45, 56, 0.95);
+}
+
+/* ---------- Panneau qui naît du bouton (NOUVEAU) ---------- */
+
+/* Le poussin reste ancré en bas à droite, même quand la fenêtre s'agrandit */
+.stage {
+  align-items: flex-end;
+  justify-content: flex-end;
+}
+
+.pet-zone {
+  position: relative;
+  flex: none;
+  width: 160px;
+  height: 160px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Fermé : exactement la taille et la place du bouton rond */
+.panel {
+  position: absolute;
+  left: 67px;
+  top: 2px;
+  width: 26px;
+  height: 26px;
+  border-radius: 13px;
+  overflow: hidden;
+  background: #15151b;
+  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.4);
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    left 0.36s cubic-bezier(0.2, 0.8, 0.25, 1),
+    top 0.36s cubic-bezier(0.2, 0.8, 0.25, 1),
+    width 0.36s cubic-bezier(0.2, 0.8, 0.25, 1),
+    height 0.36s cubic-bezier(0.2, 0.8, 0.25, 1),
+    border-radius 0.36s ease,
+    opacity 0.12s;
+}
+
+/* Ouvert : grand panneau au-dessus du poussin, un peu vers la gauche */
+.panel.open {
+  left: -34px;
+  top: -290px;
+  width: 190px;
+  height: 320px;
+  border-radius: 18px;
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Le contenu garde sa taille finale et apparaît une fois le panneau formé */
+.panel-inner {
+  position: relative;
+  width: 190px;
+  height: 320px;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.panel.open .panel-inner {
+  opacity: 1;
+  transition: opacity 0.2s 0.2s;
+}
+
+.panel-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.06);
+  color: #8b8b98;
+  font-size: 10px;
+  cursor: pointer;
+}
+
+.panel-close:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #eeeef2;
+}
+
+/* Le bouton rond s'efface pendant que le panneau est ouvert */
+.stage.panel-open .menu-btn {
+  opacity: 0;
+  pointer-events: none;
+}
+/* ================= Étape 4 : apparence du pet ================= */
+
+/* La couleur vient de la variable --pet-color (choisie dans Profil) */
+.creature {
+  background: var(--pet-color, #ffd84d);
+}
+
+/* Oreilles de chat */
+.ear {
+  position: absolute;
+}
+.ear.cat {
+  top: -8px;
+  width: 0;
+  height: 0;
+  border-left: 12px solid transparent;
+  border-right: 12px solid transparent;
+  border-bottom: 20px solid var(--pet-color, #ffd84d);
+}
+.ear.cat.left {
+  left: 10px;
+  transform: rotate(-12deg);
+}
+.ear.cat.right {
+  right: 10px;
+  transform: rotate(12deg);
+}
+
+/* Oreilles de lapin */
+.ear.rabbit {
+  top: -24px;
+  width: 14px;
+  height: 34px;
+  border-radius: 50% 50% 40% 40%;
+  background: var(--pet-color, #ffd84d);
+}
+.ear.rabbit::after {
+  content: "";
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  top: 6px;
+  bottom: 8px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.45);
+}
+.ear.rabbit.left {
+  left: 18px;
+  transform: rotate(-8deg);
+}
+.ear.rabbit.right {
+  right: 18px;
+  transform: rotate(8deg);
+}
+
+/* Ventre de pingouin */
+.belly {
+  position: absolute;
+  left: 50%;
+  bottom: 4px;
+  width: 58px;
+  height: 42px;
+  margin-left: -29px;
+  border-radius: 50% 50% 46% 46%;
+  background: rgba(255, 255, 255, 0.88);
+}
+
+/* Petit nez rose (chat, lapin) */
+.beak.nose {
+  left: 44px;
+  top: 50px;
+  width: 8px;
+  height: 6px;
+  background: #ff8fa3;
+}
+
+/* Œuf (avant la première éclosion) : vraie image (public/egg/stage0-2.png),
+   pas de couleur choisie. Centré par marges négatives (pas par transform)
+   pour ne pas entrer en conflit avec les animations de tremblement/
+   craquement ci-dessous, qui posent leur propre transform. */
+.egg-shape {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  display: block;
+  width: 74px;
+  height: 90px;
+  margin-left: -37px;
+  margin-top: -45px;
+  object-fit: contain;
+  -webkit-user-drag: none;
+  filter: drop-shadow(0 4px 5px rgba(0, 0, 0, 0.3));
+}
+
+/* Il faut 3 clics pour ouvrir l'œuf : les 2 premiers ne font que trembler
+   (retour visuel que le clic a été pris en compte), le 3e déclenche le
+   vrai craquement (egg-crack ci-dessous) qui ouvre l'œuf. */
+.egg-shape.shaking {
+  animation: egg-shake 0.28s ease-in-out;
+}
+@keyframes egg-shake {
+  0%,
+  100% {
+    transform: rotate(0deg) scale(1);
+  }
+  25% {
+    transform: rotate(-6deg) scale(1.01);
+  }
+  75% {
+    transform: rotate(6deg) scale(1.01);
+  }
+}
+
+/* Craquement au clic (onglet Œufs) : petit tremblement puis léger
+   grossissement, juste avant que l'œuf s'ouvre. */
+.egg-shape.cracking {
+  animation: egg-crack 0.6s ease-in-out;
+}
+@keyframes egg-crack {
+  0% {
+    transform: rotate(0deg) scale(1);
+  }
+  15% {
+    transform: rotate(-8deg) scale(1.02);
+  }
+  30% {
+    transform: rotate(7deg) scale(1.02);
+  }
+  45% {
+    transform: rotate(-6deg) scale(1.04);
+  }
+  60% {
+    transform: rotate(5deg) scale(1.05);
+  }
+  75% {
+    transform: rotate(-3deg) scale(1.08);
+  }
+  90% {
+    transform: rotate(2deg) scale(1.1);
+  }
+  100% {
+    transform: rotate(0deg) scale(1.15);
+    opacity: 0.7;
+  }
+}
+
+/* Aperçu dans le Profil */
+.pet-preview {
+  position: relative;
+  flex: none;
+}
+
+/* ================= Bouton rond (design) ================= */
+
+/* Position : au-dessus et un peu à gauche du poussin, sans le toucher */
+.menu-btn {
+  top: -31px;
+  left: 8px;
+  margin-left: 0;
+  width: 22px;
+  height: 22px;
+  border: 0;
+  background: radial-gradient(
+    circle at 34% 30%,
+    #fffaf0 0%,
+    #ffe28a 55%,
+    #ffc94d 100%
+  );
+  box-shadow:
+    inset 0 0 0 2px rgba(255, 255, 255, 0.55),
+    0 2px 8px rgba(255, 190, 60, 0.35),
+    /* léger liseré sombre : garde le bouton visible même sur un fond blanc */
+    0 0 0 1px rgba(20, 16, 6, 0.22);
+  /* Toujours visible avec le poussin, mais translucide */
+  opacity: 0.55;
+  transform: scale(1);
+  transition: opacity 0.25s, transform 0.2s, box-shadow 0.2s, background 0.2s;
+}
+
+/* Reflet brillant */
+.menu-btn::before {
+  content: "";
+  position: absolute;
+  left: 5px;
+  top: 4px;
+  width: 7px;
+  height: 4px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.85);
+  transform: rotate(-30deg);
+}
+
+/* Chat et lapin (oreilles) : encore un peu plus à gauche */
+.stage:has(.ear) .menu-btn {
+  left: -10px;
+}
+
+/* Cliquable seulement quand le poussin est posé */
+.stage[data-phase="visible"] .menu-btn,
+.stage[data-phase="interacting"] .menu-btn {
+  opacity: 0.55;
+  transform: scale(1);
+  pointer-events: auto;
+}
+
+/* Au survol : une couleur plus soutenue (pas plus claire !) et un liseré
+   sombre plus marqué, pour rester visible même sur un fond blanc. */
+.stage[data-phase="visible"] .menu-btn:hover,
+.stage[data-phase="interacting"] .menu-btn:hover {
+  opacity: 1;
+  transform: scale(1.15);
+  background: radial-gradient(
+    circle at 34% 30%,
+    #ffe9a0 0%,
+    #ffbb33 55%,
+    #f2900a 100%
+  );
+  box-shadow:
+    inset 0 0 0 2px rgba(255, 255, 255, 0.6),
+    0 3px 14px rgba(255, 150, 20, 0.6),
+    0 0 0 1.5px rgba(20, 16, 6, 0.4);
+}
+
+/* Le panneau fermé a exactement la taille et la place de la bulle */
+.panel {
+  left: 40px;
+  top: 1px;
+  width: 22px;
+  height: 22px;
+  border-radius: 11px;
+}
+.stage:has(.ear) .panel:not(.open) {
+  left: 22px;
+}
+
+/* La bulle s'efface quand le panneau est ouvert (doit rester en dernier) */
+.stage.panel-open .menu-btn {
+  opacity: 0;
+  pointer-events: none;
+}
+/* ================= Corps de pet réutilisable ================= */
+
+.pet-body {
+  position: relative;
+  display: block;
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  background: var(--pet-color, #ffd84d);
+  box-shadow: inset -6px -8px 0 rgba(0, 0, 0, 0.08);
+  transform-origin: 50% 100%;
+}
+
+/* Oreilles rondes (panda) */
+.ear.round {
+  top: -6px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #3b3b46;
+}
+.ear.round.left {
+  left: 6px;
+}
+.ear.round.right {
+  right: 6px;
+}
+/* ================= Le poussin en images ================= */
+
+.ck2 {
+  --s: 1.23; /* agrandissement des images */
+  --cw: calc(120px * var(--s));
+  --ch: calc(130px * var(--s));
+  position: absolute;
+  left: calc(50% - var(--cw) / 2);
+  bottom: calc(-6px * var(--s));
+  width: var(--cw);
+  height: var(--ch);
+  background-image: var(--ck-idle);
+  background-repeat: no-repeat;
+  background-size: calc(var(--cw) * 9) var(--ch);
+  background-position: 0 0;
+  pointer-events: none;
+}
+
+@keyframes ck-frames {
+  to { background-position: calc(var(--cw) * -9) 0; }
+}
+
+/* Repos : le poussin respire et cligne des yeux */
+:is(.stage, .pw)[data-phase="visible"] .ck2 {
+  animation: ck-frames 2.4s steps(9) infinite;
+}
+/* Clic : il réagit */
+:is(.stage, .pw)[data-phase="interacting"] .ck2 {
+  background-image: var(--ck-react);
+  animation: ck-frames 0.7s steps(9) 1;
+}
+/* Arrivée : il marche vers la gauche (depuis le bord droit) */
+:is(.stage, .pw)[data-phase="arriving"] .ck2 {
+  background-image: var(--ck-wl);
+  animation: ck-frames 0.72s steps(9) infinite;
+}
+/* Départ : il marche vers la droite */
+:is(.stage, .pw)[data-phase="exiting"] .ck2 {
+  background-image: var(--ck-wr);
+  animation: ck-frames 0.72s steps(9) infinite;
+}
+/* Pet posé sur le bord gauche : sens inversé */
+.pw[data-edge="left"][data-phase="arriving"] .ck2 { background-image: var(--ck-wr); }
+.pw[data-edge="left"][data-phase="exiting"] .ck2 { background-image: var(--ck-wl); }
+/* Pet posé en haut ou en bas : il arrive de face */
+.pw[data-edge="top"][data-phase="arriving"] .ck2,
+.pw[data-edge="top"][data-phase="exiting"] .ck2,
+.pw[data-edge="bottom"][data-phase="arriving"] .ck2,
+.pw[data-edge="bottom"][data-phase="exiting"] .ck2 {
+  background-image: var(--ck-idle);
+}
+
+/* Les images bougent déjà : plus de rebond ni de respiration sur le corps */
+.stage[data-phase="arriving"] .creature:has(> .chick),
+.stage[data-phase="exiting"] .creature:has(> .chick),
+.stage[data-phase="visible"] .creature:has(> .chick),
+.pw[data-phase="arriving"] .pet-body:has(> .chick),
+.pw[data-phase="exiting"] .pet-body:has(> .chick),
+.pw[data-phase="visible"] .pet-body:has(> .chick) {
+  animation: none;
+}
+
+/* Au clic non plus : la planche « react » fait déjà toute l'animation
+   (regard, cœur, ailes...), le faire sauter en plus par-dessus ne fait que
+   se chevaucher avec elle. On garde quand même une animation de même durée
+   mais invisible (joy-still) : App.tsx / PinnedWindow.tsx s'en servent pour
+   savoir quand le clic est terminé (ils écoutent "joy" ET "joy-still").
+   Durée alignée sur la planche « react » (9 poses × 130ms, ChickSprite.tsx). */
+.stage[data-phase="interacting"] .creature:has(> .chick),
+.pw[data-phase="interacting"] .pet-body:has(> .chick) {
+  animation: joy-still 1.17s ease-out;
+}
+@keyframes joy-still {
+  from { transform: none; }
+  to   { transform: none; }
+}
+/* ck-nobg : le poussin en images n'a plus de rond de couleur derrière */
+/* pareil pour l'œuf : pas de rond jaune derrière, juste l'œuf */
+.stage .creature:has(> .chick),
+.creature:has(> .chick),
+.pw .pet-body:has(> .chick),
+.pet-body:has(> .chick),
+.creature:has(> .egg-shape),
+.pet-body:has(> .egg-shape) {
+  background: none !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+}
+.creature:has(> .chick)::before,
+.creature:has(> .chick)::after,
+.pet-body:has(> .chick)::before,
+.pet-body:has(> .chick)::after {
+  display: none !important;
+}
+/* ck-js : les poses sont changées par le code, plus par une animation CSS */
+.ck2 {
+  animation: none !important;
+}
+
+/* ================= Le skin « Aventurier » (Shop) en images ================= */
+
+.xp2 {
+  --xs: 1.23; /* même réglage que le poussin (--s) */
+  /* Contrairement au poussin (dont l'image a une bonne marge tout autour
+     dans sa boîte), les images de l'Aventurier sont recadrées au plus près
+     du personnage (pour que les pieds touchent bien le sol, voir plus bas) —
+     du coup la boîte EST directement la taille affichée, sans marge pour
+     l'amortir. On la garde donc plus petite que celle du poussin, sinon le
+     personnage paraît trop grand (aperçu Profil notamment). Le petit bouton
+     au-dessus du pet s'adapte de toute façon à cette hauteur tout seul
+     (App.tsx/PinnedWindow.tsx, voir spriteGeometry.ts). */
+  --xw: calc(34px * var(--xs));
+  --xh: calc(95px * var(--xs));
+  position: absolute;
+  left: calc(50% - var(--xw) / 2);
+  bottom: calc(-6px * var(--xs));
+  width: var(--xw);
+  height: var(--xh);
+  background-repeat: no-repeat;
+  background-position: 0 0;
+  pointer-events: none;
+}
+
+/* Pas de rond de couleur derrière, comme pour le poussin */
+.stage .creature:has(> .explorer),
+.creature:has(> .explorer),
+.pw .pet-body:has(> .explorer),
+.pet-body:has(> .explorer) {
+  background: none !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+}
+.creature:has(> .explorer)::before,
+.creature:has(> .explorer)::after,
+.pet-body:has(> .explorer)::before,
+.pet-body:has(> .explorer)::after {
+  display: none !important;
+}
+/* Pas de planche « réaction » pour ce skin : au clic, on garde le petit saut
+   CSS classique (« joy », voir pinned.css / .pw[data-phase="interacting"]
+   .pet-body) — contrairement au poussin, rien ne se chevauche ici. */
+
+/* Posé sur l'herbe et en balade (voir PinnedWindow.tsx / tick_wander côté
+   Rust) : la marche est déjà dans les poses de la planche walk_l/walk_r, la
+   respiration CSS générique (idle, pinned.css) ferait bouger le corps en
+   plus par-dessus, donc on la coupe pendant qu'il marche. */
+.pw[data-walking="true"] .pet-body:has(> .explorer) {
+  animation: none;
+}
+/* Arrivée / départ : ExplorerSprite.tsx garde déjà une pose fixe (course sur
+   les bords gauche/droit, idle statique de face sur le bord bas/haut) — le
+   rebond CSS générique (walk, pinned.css : bascule -3deg/+3deg + saut de
+   8px) par-dessus donnait l'impression qu'il trébuchait en arrière au lieu
+   de vraiment marcher, surtout de face où la pose ne bouge pas du tout pour
+   masquer la bascule. Contrairement à « visible », on garde par contre la
+   respiration CSS une fois arrivé (arrêté sur l'herbe/le bord) : Aventurier
+   n'a qu'une seule pose fixe, c'est elle qui lui donne un peu de vie. */
+.stage[data-phase="arriving"] .creature:has(> .explorer),
+.stage[data-phase="exiting"] .creature:has(> .explorer),
+.pw[data-phase="arriving"] .pet-body:has(> .explorer),
+.pw[data-phase="exiting"] .pet-body:has(> .explorer) {
+  animation: none;
+}
+
+/* ================= Le skin « Grillon » (Shop) en images ================= */
+
+.cr2 {
+  --crs: 1.23; /* même réglage que le poussin/l'Aventurier (--s/--xs) */
+  /* Boîte volontairement plus grande que celle du poussin : les antennes et
+     le sac à dos du Grillon débordent bien au-dessus du corps (voir la
+     planche de référence d'Antoine). spriteGeometry.ts (SPRITE_BASE_HEIGHT)
+     doit rester égal à --crh de base ci-dessous.
+     --crw suit le ratio des vraies planches (public/cricket/*.png), toutes
+     découpées sur une cellule commune de 466x710px (voir extract.py côté
+     outillage) : 170 * 466/710 ≈ 112, pour ne pas écraser le personnage. */
+  --crw: calc(112px * var(--crs));
+  --crh: calc(170px * var(--crs));
+  position: absolute;
+  left: calc(50% - var(--crw) / 2);
+  bottom: calc(-6px * var(--crs));
+  width: var(--crw);
+  height: var(--crh);
+  background-repeat: no-repeat;
+  background-position: 0 0;
+  pointer-events: none;
+}
+
+/* Pas de rond de couleur derrière, comme le poussin/l'Aventurier. */
+.stage .creature:has(> .cricket),
+.creature:has(> .cricket),
+.pw .pet-body:has(> .cricket),
+.pet-body:has(> .cricket) {
+  background: none !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+}
+.creature:has(> .cricket)::before,
+.creature:has(> .cricket)::after,
+.pet-body:has(> .cricket)::before,
+.pet-body:has(> .cricket)::after {
+  display: none !important;
+}
+
+/* Les poses défilent déjà par le code (CricketSprite.tsx, comme le poussin) :
+   pas de rebond CSS générique par-dessus pendant marche/course/arrivée/départ. */
+.stage[data-phase="arriving"] .creature:has(> .cricket),
+.stage[data-phase="exiting"] .creature:has(> .cricket),
+.stage[data-phase="visible"] .creature:has(> .cricket),
+.pw[data-phase="arriving"] .pet-body:has(> .cricket),
+.pw[data-phase="exiting"] .pet-body:has(> .cricket),
+.pw[data-phase="visible"] .pet-body:has(> .cricket) {
+  animation: none;
+}
+.pw[data-walking="true"] .pet-body:has(> .cricket) {
+  animation: none;
+}
+
+/* Au clic : la planche « jump » (6 poses × 90ms = 540ms, CricketSprite.tsx)
+   fait toute l'animation, comme le poussin avec « react ». Une animation
+   invisible de même durée (le même « joy-still » vide que le poussin, voir
+   plus haut) sert juste à signaler la fin du clic à petMachine.ts —
+   PinnedWindow.tsx / App.tsx écoutent "joy" ET "joy-still". Si la vitesse de
+   « jump » change dans CricketSprite.tsx, cette durée doit suivre. */
+.stage[data-phase="interacting"] .creature:has(> .cricket),
+.pw[data-phase="interacting"] .pet-body:has(> .cricket) {
+  animation: joy-still 0.54s ease-out;
+}
+
+/* ================= Habillage : finitions du panneau ================= */
+
+.panel {
+  background: linear-gradient(165deg, #1e1e26 0%, #16161c 55%, #101014 100%);
+  box-shadow:
+    0 14px 34px rgba(0, 0, 0, 0.45),
+    0 1px 0 rgba(255, 255, 255, 0.05) inset;
+}
+
+.menu-btn {
+  transition: opacity 0.25s, transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s;
+}
+
+.panel-close {
+  transition: background 0.2s, color 0.2s, transform 0.15s;
+}
+.panel-close:hover {
+  transform: rotate(90deg);
+}

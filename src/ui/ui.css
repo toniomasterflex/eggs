@@ -1,0 +1,1418 @@
+.eggs-ui {
+  --bg: #15151b;
+  --text: #eeeef2;
+  --muted: #8b8b98;
+  --accent: #ffd84d;
+  --line: rgba(255, 255, 255, 0.06);
+
+  color-scheme: dark;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  color: var(--text);
+  font-family: "Segoe UI", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+}
+
+.eggs-ui .content {
+  flex: 1;
+  overflow-y: auto;
+}
+
+/* ---------- Écrans ---------- */
+
+.eggs-ui .screen {
+  padding: 18px 16px;
+}
+
+.eggs-ui .screen h1 {
+  margin: 0 0 16px;
+  font-size: 21px;
+  font-weight: 700;
+  letter-spacing: 0.1px;
+}
+
+/* Petit label en capitales juste au-dessus du titre (la catégorie), pour un
+   titre d'écran plus soigné. Simple élément voisin du h1 — pas de wrapper
+   nécessaire. */
+.eggs-ui .screen-eyebrow {
+  display: block;
+  margin: 0 0 3px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.8px;
+  text-transform: uppercase;
+  color: var(--accent);
+  opacity: 0.8;
+}
+
+.eggs-ui .placeholder {
+  margin-top: 60px;
+  text-align: center;
+  font-size: 40px;
+  opacity: 0.12;
+}
+
+/* ---------- Barre de navigation ---------- */
+
+.eggs-ui .tabbar {
+  display: flex;
+  gap: 2px;
+  padding: 6px 6px 8px;
+  border-top: 1px solid var(--line);
+}
+
+.eggs-ui .tab {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 0 5px;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  color: var(--muted);
+  font-family: inherit;
+  font-size: 10px;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.eggs-ui .tab .icon {
+  position: relative;
+  font-size: 15px;
+  filter: grayscale(1) opacity(0.55);
+  transition: filter 0.2s;
+}
+
+.eggs-ui .tab-badge {
+  position: absolute;
+  top: -2px;
+  right: -5px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #ff6b6b;
+  box-shadow: 0 0 0 1.5px var(--bg);
+}
+
+.eggs-ui .tab:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.eggs-ui .tab.active {
+  color: var(--accent);
+  background: rgba(255, 216, 77, 0.08);
+}
+
+.eggs-ui .tab.active .icon {
+  filter: none;
+}
+/* ================= Étape 2 : Chats et conversations ================= */
+
+.eggs-ui .content {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.eggs-ui input {
+  user-select: text;
+}
+
+.eggs-ui ::-webkit-scrollbar {
+  width: 6px;
+}
+.eggs-ui ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+}
+
+.eggs-ui .creature-avatar {
+  line-height: 1;
+}
+
+/* ---------- Liste des chats ---------- */
+
+.eggs-ui .chat-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.eggs-ui .chat-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 12px;
+  background: none;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.eggs-ui .chat-row:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.eggs-ui .chat-name {
+  flex: 1;
+}
+
+.eggs-ui .unread-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+/* ---------- Conversation ---------- */
+
+.eggs-ui .conversation {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.eggs-ui .conv-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 40px 8px 8px;
+}
+
+.eggs-ui .back {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--muted);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.eggs-ui .back:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text);
+}
+
+.eggs-ui .conv-name {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.eggs-ui .messages {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 6px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* Le premier message se colle en bas quand il y en a peu */
+.eggs-ui .messages > :first-child {
+  margin-top: auto;
+}
+
+.eggs-ui .bubble {
+  max-width: 82%;
+  padding: 6px 10px;
+  border-radius: 14px;
+  font-size: 12.5px;
+  line-height: 1.35;
+  word-break: break-word;
+  user-select: text;
+}
+
+.eggs-ui .bubble.theirs {
+  align-self: flex-start;
+  background: rgba(255, 255, 255, 0.07);
+  border-bottom-left-radius: 5px;
+}
+
+.eggs-ui .bubble.mine {
+  align-self: flex-end;
+  background: rgba(255, 216, 77, 0.18);
+  border-bottom-right-radius: 5px;
+}
+
+.eggs-ui .composer {
+  display: flex;
+  gap: 6px;
+  padding: 8px 10px 10px;
+}
+
+.eggs-ui .composer input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  border-radius: 16px;
+  padding: 7px 12px;
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 12.5px;
+}
+
+.eggs-ui .composer input::placeholder {
+  color: var(--muted);
+}
+
+.eggs-ui .composer button {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #15151b;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+/* ================= Étape 3 : Répertoire et ajout d'ami ================= */
+
+.eggs-ui .chat-row {
+  box-sizing: border-box;
+}
+
+.eggs-ui .chat-row.static {
+  cursor: default;
+}
+
+.eggs-ui .chat-row.static:hover {
+  background: none;
+}
+
+.eggs-ui .add-btn {
+  margin-top: 14px;
+  width: 100%;
+  padding: 9px 10px;
+  border: 1px dashed rgba(255, 255, 255, 0.14);
+  border-radius: 12px;
+  background: none;
+  color: var(--muted);
+  font-family: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+  transition: color 0.2s, border-color 0.2s, background 0.2s;
+}
+
+.eggs-ui .add-btn:hover {
+  color: var(--accent);
+  border-color: rgba(255, 216, 77, 0.4);
+  background: rgba(255, 216, 77, 0.05);
+}
+
+/* ---------- Shop ---------- */
+
+.eggs-ui .shop-screen {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.eggs-ui .shop-head h1 {
+  margin-bottom: 4px;
+}
+
+.eggs-ui .shop-note {
+  margin: 0 0 12px;
+  font-size: 10.5px;
+  line-height: 1.4;
+  color: var(--muted);
+}
+
+.eggs-ui .shop-subtitle {
+  margin: 18px 0 8px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+/* Catégories : boutons empilés (même principe que le Profil/Mon compte),
+   chacun ouvrant un sous-écran — plus de rangée d'onglets qui débordait
+   du panneau. */
+.eggs-ui .shop-categories {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.eggs-ui .shop-cat-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+  padding: 10px 14px;
+  border: 0;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.eggs-ui .shop-cat-btn:hover {
+  background: rgba(255, 216, 77, 0.12);
+  color: var(--accent);
+}
+
+.eggs-ui .shop-cat-icon {
+  flex: none;
+  font-size: 15px;
+  line-height: 1;
+}
+
+.eggs-ui .shop-cat-label {
+  flex: 1;
+  min-width: 0;
+}
+
+.eggs-ui .shop-cat-arrow {
+  flex: none;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.eggs-ui .shop-body {
+  flex: 1;
+  min-height: 0;
+}
+
+/* Bandeau « à la une », inspiré des vitrines de vraies boutiques. */
+.eggs-ui .shop-banner {
+  position: relative;
+  overflow: hidden;
+  border-radius: 16px;
+  padding: 14px 78px 14px 14px;
+  background: linear-gradient(135deg, rgba(255, 216, 77, 0.22) 0%, rgba(255, 216, 77, 0.05) 65%, transparent 100%),
+    rgba(255, 255, 255, 0.04);
+  min-height: 64px;
+  display: flex;
+  align-items: center;
+}
+
+.eggs-ui .shop-banner-text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  position: relative;
+  z-index: 1;
+}
+
+.eggs-ui .shop-banner-tag {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.eggs-ui .shop-banner-title {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.eggs-ui .shop-banner-sub {
+  font-size: 10.5px;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+
+.eggs-ui .shop-banner-btn {
+  align-self: flex-start;
+  margin-top: 4px;
+  padding: 6px 13px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #1a1a1f;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: filter 0.2s;
+}
+
+.eggs-ui .shop-banner-btn:hover {
+  filter: brightness(1.08);
+}
+
+.eggs-ui .shop-banner-img {
+  position: absolute;
+  right: -8px;
+  bottom: -6px;
+  width: 92px;
+  height: 92px;
+  object-fit: contain;
+  object-position: center bottom;
+  pointer-events: none;
+}
+
+/* Grille de cartes : deux colonnes, façon rayons de boutique. */
+.eggs-ui .shop-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.eggs-ui .shop-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 3px;
+  padding: 12px 8px 10px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.eggs-ui .shop-card.soon {
+  opacity: 0.5;
+}
+
+.eggs-ui .shop-card.owned {
+  box-shadow: inset 0 0 0 1px rgba(255, 216, 77, 0.3);
+}
+
+.eggs-ui .shop-card-tag {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #1a1a1f;
+  font-size: 7.5px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+}
+
+.eggs-ui .shop-card-thumb {
+  width: 46px;
+  height: 46px;
+  object-fit: contain;
+  object-position: center bottom;
+}
+
+.eggs-ui .shop-card-thumb-emoji {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 30px;
+  line-height: 1;
+}
+
+.eggs-ui .shop-card-info {
+  width: 100%;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.eggs-ui .shop-card-label {
+  font-size: 11.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.eggs-ui .shop-card-sub {
+  font-size: 9.5px;
+  color: var(--muted);
+}
+
+.eggs-ui .shop-card-buy {
+  margin-top: 3px;
+  padding: 5px 12px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(255, 216, 77, 0.14);
+  color: var(--accent);
+  font-family: inherit;
+  font-size: 10.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.eggs-ui .shop-card-buy:hover:not(:disabled) {
+  background: rgba(255, 216, 77, 0.26);
+}
+
+.eggs-ui .shop-card-buy:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.eggs-ui .shop-card-done {
+  margin-top: 3px;
+  font-size: 10px;
+  font-weight: 700;
+  color: #8fe3b0;
+}
+
+/* Catégories pas encore garnies : « Bientôt disponible ». */
+.eggs-ui .shop-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 54px 20px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.eggs-ui .shop-empty-icon {
+  font-size: 34px;
+  opacity: 0.5;
+}
+
+.eggs-ui .shop-empty strong {
+  color: var(--text);
+}
+
+.eggs-ui .search {
+  padding: 2px 10px 8px;
+}
+
+.eggs-ui .search input {
+  width: 100%;
+  box-sizing: border-box;
+  border: 0;
+  outline: 0;
+  border-radius: 16px;
+  padding: 7px 12px;
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 12.5px;
+}
+
+.eggs-ui .search input::placeholder {
+  color: var(--muted);
+}
+
+.eggs-ui .results {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0 10px 10px;
+}
+
+.eggs-ui .no-result {
+  margin: 18px 0 0;
+  text-align: center;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.eggs-ui .round-btn {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #15151b;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.eggs-ui .added {
+  width: 24px;
+  text-align: center;
+  color: var(--accent);
+  font-size: 13px;
+}
+/* ================= Étape 4 : Profil et personnalisation ================= */
+
+.eggs-ui .profile-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  margin-top: 22px;
+}
+
+/* Petit bouton épingle au-dessus à droite de l'avatar, dans Profil : garde
+   ma créature sur le bureau sans qu'elle reparte (même style que le bouton
+   « épingler » du Répertoire, en plus petit). */
+.eggs-ui .avatar-wrap {
+  position: relative;
+}
+.eggs-ui .self-pin-btn {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  width: 17px;
+  height: 17px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: rgba(21, 21, 27, 0.9);
+  color: rgba(255, 255, 255, 0.45);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.eggs-ui .self-pin-btn:hover {
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+}
+.eggs-ui .self-pin-btn.on {
+  background: #f5c451;
+  color: #1a1a1a;
+  border-color: transparent;
+}
+
+.eggs-ui .soft-btn {
+  padding: 8px 20px;
+  border: 0;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.eggs-ui .soft-btn:hover {
+  background: rgba(255, 216, 77, 0.12);
+  color: var(--accent);
+}
+
+.eggs-ui .option-row {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+
+.eggs-ui .option {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.06);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.eggs-ui .option:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.eggs-ui .swatch {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 0 0 2px var(--bg) inset;
+  transition: border-color 0.2s, transform 0.2s;
+}
+
+.eggs-ui .swatch:hover {
+  transform: scale(1.1);
+}
+
+.eggs-ui .option.selected,
+.eggs-ui .swatch.selected {
+  border-color: var(--accent);
+}
+
+/* Profil : flèches gauche/droite autour de l'avatar pour changer de
+   créature active — petites et collées à l'avatar. */
+.eggs-ui .collection-carousel {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.eggs-ui .carousel-arrow {
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+.eggs-ui .carousel-arrow:hover:not(:disabled) {
+  background: rgba(255, 216, 77, 0.12);
+  color: var(--accent);
+}
+.eggs-ui .carousel-arrow:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.eggs-ui .collection-count {
+  margin: 0;
+  font-size: 12px;
+  opacity: 0.6;
+}
+.eggs-ui .collection-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  text-align: center;
+  padding: 0 12px;
+  margin-top: 24px;
+}
+.eggs-ui .collection-empty p {
+  margin: 0;
+  font-size: 13px;
+  opacity: 0.75;
+  max-width: 220px;
+}
+
+/* Ma collection, en grille : 3 par rang, 4 rangs visibles avant de devoir
+   défiler (taille de case fixe, pour que ce calcul reste exact). */
+.eggs-ui .collection-grid {
+  --cell: 48px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  max-height: calc(4 * var(--cell) + 3 * 8px);
+  overflow-y: auto;
+  padding: 14px 12px 12px;
+}
+.eggs-ui .collection-grid-item {
+  position: relative;
+  width: 100%;
+  height: var(--cell);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  transition: background 0.2s, box-shadow 0.2s;
+}
+.eggs-ui .collection-grid-item:hover {
+  background: rgba(255, 216, 77, 0.1);
+}
+.eggs-ui .collection-grid-item.active {
+  background: rgba(255, 216, 77, 0.14);
+  box-shadow: inset 0 0 0 2px var(--accent);
+}
+.eggs-ui .collection-pick {
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: inherit;
+  background: none;
+  color: inherit;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+/* Petit point sur chaque créature déjà posée sur l'herbe — juste un repère
+   visuel, pas un bouton (on la range via le bouton rond au-dessus d'elle sur
+   le bureau, PinnedWindow.tsx ; on l'y pose en la glissant hors d'ici). */
+.eggs-ui .collection-pinned-dot {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #f5c451;
+  box-shadow: 0 0 0 2px rgba(20, 20, 26, 0.55);
+  pointer-events: none;
+}
+/* Répertoire : ligne ami + bouton épingle */
+.eggs-ui .dir-row { display: flex; align-items: center; gap: 6px; }
+.eggs-ui .dir-row .row-main {
+  flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px;
+  background: none; border: none; color: inherit; padding: 6px 4px;
+  cursor: pointer; text-align: left; font: inherit;
+}
+.eggs-ui .pin-btn {
+  flex: none; width: 28px; height: 28px; border-radius: 50%;
+  display: grid; place-items: center; cursor: pointer;
+  background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.45);
+  border: 1px solid rgba(255,255,255,0.08);
+  transition: background .15s, color .15s;
+}
+.eggs-ui .pin-btn:hover:not(:disabled) { background: rgba(255,255,255,0.14); color: #fff; }
+.eggs-ui .pin-btn.on { background: #f5c451; color: #1a1a1a; border-color: transparent; }
+.eggs-ui .pin-btn:disabled { opacity: 0.25; cursor: default; }
+.eggs-ui .egg-btn {
+  flex: none; width: 28px; height: 28px; border-radius: 50%; font-size: 12px;
+  display: grid; place-items: center; cursor: pointer;
+  background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.75);
+  border: 1px solid rgba(255,255,255,0.08);
+  transition: background .15s, color .15s;
+}
+.eggs-ui .egg-btn:hover:not(:disabled) { background: rgba(255, 216, 77, 0.14); }
+.eggs-ui .egg-btn.sent { color: #8fe3b0; }
+.eggs-ui .egg-btn.pending { color: var(--muted); }
+.eggs-ui .egg-btn.error { color: #ff8a80; }
+.eggs-ui .egg-btn:disabled { cursor: default; }
+/* avatar-fix : petites têtes de créatures dans les listes */
+.eggs-ui .creature-avatar {
+  position: relative;
+  display: inline-block;
+  flex: none;
+  overflow: visible;
+}
+
+.eggs-ui .avatar-inner {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: block;
+  width: 96px;
+  height: 96px;
+  transform-origin: top left;
+}
+/* ---- Connexion / compte ---- */
+.eggs-ui .auth { display: flex; flex-direction: column; gap: 10px; }
+.eggs-ui .auth-form { display: flex; flex-direction: column; gap: 8px; }
+.eggs-ui .auth-form input {
+  width: 100%;
+  box-sizing: border-box;
+  border: 0;
+  outline: 0;
+  border-radius: 16px;
+  padding: 9px 12px;
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--text);
+  caret-color: var(--text);
+  font-family: inherit;
+  font-size: 12.5px;
+}
+.eggs-ui .auth-form input::placeholder {
+  color: var(--muted);
+}
+.eggs-ui .auth-form input:-webkit-autofill {
+  -webkit-text-fill-color: var(--text);
+  box-shadow: 0 0 0 100px #23232c inset;
+}
+.eggs-ui .auth-error { margin: 0; color: #ff8a80; font-size: 12px; }
+.eggs-ui .auth-switch {
+  border: none;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  padding: 6px;
+}
+.eggs-ui .auth-switch:hover { text-decoration: underline; }
+.eggs-ui .profile-name { margin: 0; font-weight: 600; font-size: 14px; }
+
+
+/* ---- Compte ---- */
+.eggs-ui .profile-actions { display: flex; flex-direction: column; gap: 8px; width: 100%; max-width: 200px; }
+.eggs-ui .profile-actions .soft-btn { width: 100%; }
+.eggs-ui .account { padding: 6px 16px 18px; display: flex; flex-direction: column; gap: 12px; overflow-y: auto; }
+.eggs-ui .account-line { margin: 0; font-size: 12.5px; color: var(--muted); }
+.eggs-ui .account-line strong { color: var(--text); }
+.eggs-ui .account-done { margin: 0; font-size: 12px; color: #8fe3b0; }
+.eggs-ui .account-warn { margin: 0; font-size: 12px; line-height: 1.4; color: #ff8a80; }
+.eggs-ui .account-list { display: flex; flex-direction: column; gap: 8px; }
+.eggs-ui .account-btn {
+  text-align: left;
+  padding: 10px 14px;
+  border: 0;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+.eggs-ui .account-btn:hover { background: rgba(255, 216, 77, 0.12); color: var(--accent); }
+.eggs-ui .account-btn.danger, .eggs-ui .soft-btn.danger { color: #ff8a80; }
+.eggs-ui .account-btn.danger:hover, .eggs-ui .soft-btn.danger:hover { background: rgba(255, 138, 128, 0.14); color: #ff8a80; }
+.eggs-ui .soft-btn:disabled { opacity: 0.45; cursor: default; }
+.eggs-ui .auth-check { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); cursor: pointer; }
+.eggs-ui .auth-check input { width: auto; margin: 0; padding: 0; background: none; border-radius: 0; accent-color: var(--accent); }
+
+/* ---- Réglages (Personnaliser > Réglages) ---- */
+.eggs-ui .settings-list { padding: 6px 16px 18px; display: flex; flex-direction: column; gap: 10px; overflow-y: auto; }
+.eggs-ui .setting-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.07);
+  cursor: pointer;
+}
+.eggs-ui .setting-row input {
+  width: auto;
+  margin: 2px 0 0;
+  padding: 0;
+  background: none;
+  border-radius: 0;
+  accent-color: var(--accent);
+  flex: none;
+}
+.eggs-ui .setting-label { display: block; font-size: 12.5px; color: var(--text); }
+.eggs-ui .setting-desc { display: block; margin-top: 2px; font-size: 11px; line-height: 1.4; color: var(--muted); }
+
+/* ---- Éclosion (œufs à ouvrir) ---- */
+.eggs-ui .hatch-list { padding: 10px 16px 18px; display: flex; flex-direction: column; gap: 10px; overflow-y: auto; }
+.eggs-ui .hatch-empty { text-align: center; font-size: 13px; color: var(--muted); margin-top: 30px; }
+.eggs-ui .hatch-result {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 20px;
+  text-align: center;
+}
+.eggs-ui .hatch-result p { margin: 0; font-size: 13px; color: var(--muted); }
+
+/* La ferme : tous les œufs en attente, posés ensemble (3 par rang). Chaque
+   œuf a son propre petit bouton cadeau pour l'offrir à un ami — la seule
+   zone de l'app où cette mécanique apparaît (pas dans la fiche d'un ami, ni
+   dans un salon). */
+.eggs-ui .farm-grid {
+  --cell: 64px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  padding: 4px 4px 6px;
+}
+.eggs-ui .farm-cell {
+  position: relative;
+}
+.eggs-ui .farm-egg {
+  width: 100%;
+  height: var(--cell);
+  padding: 0;
+  border: 0;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.05);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.15s, box-shadow 0.15s;
+}
+.eggs-ui .farm-egg:hover:not(:disabled) {
+  background: rgba(255, 216, 77, 0.1);
+  transform: scale(1.03);
+}
+.eggs-ui .farm-egg:disabled {
+  cursor: default;
+}
+/* Petit effet d'arrivée quand un œuf vient d'apparaître (cadeau reçu, œuf de
+   la semaine...) : pour qu'on le remarque tout de suite, sans avoir à
+   deviner qu'il s'est passé quelque chose. */
+.eggs-ui .farm-egg.arrived {
+  animation: farm-egg-arrive 1.2s ease;
+}
+@keyframes farm-egg-arrive {
+  0% { background: rgba(255, 216, 77, 0.35); transform: scale(0.85); }
+  35% { background: rgba(255, 216, 77, 0.35); transform: scale(1.08); }
+  100% { background: rgba(255, 255, 255, 0.05); transform: scale(1); }
+}
+/* Œuf choisi pour être offert : petit liseré pour qu'on sache lequel. */
+.eggs-ui .farm-egg.selected {
+  box-shadow: 0 0 0 2px var(--accent), 0 2px 10px rgba(255, 216, 77, 0.3);
+}
+.eggs-ui .farm-gift-btn {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: #23232c;
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 11px;
+  line-height: 1;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, transform 0.15s;
+}
+.eggs-ui .farm-gift-btn:hover:not(:disabled) {
+  background: rgba(255, 216, 77, 0.18);
+  color: var(--accent);
+  transform: scale(1.08);
+}
+.eggs-ui .farm-gift-btn:disabled { opacity: 0.35; cursor: default; }
+.eggs-ui .farm-hint {
+  margin: 10px 0 0;
+  text-align: center;
+  font-size: 12px;
+  color: var(--muted);
+}
+.eggs-ui .farm-gift-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 14px 0 2px;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+.eggs-ui .farm-gift-head button {
+  border: none;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 13px;
+  padding: 4px;
+  line-height: 1;
+}
+.eggs-ui .farm-gift-head button:hover { color: var(--text); }
+.eggs-ui .hatch-friend-list {
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+.eggs-ui .hatch-friend-list .hatch-empty { margin: 14px 0; }
+
+/* ================= Habillage : finitions visuelles ================= */
+
+.eggs-ui {
+  background: radial-gradient(140% 160% at 50% -20%, #202029 0%, #17171d 55%, #101014 100%);
+}
+
+/* Repère clavier visible sur les champs et boutons */
+.eggs-ui input:focus-visible,
+.eggs-ui button:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(255, 216, 77, 0.45);
+}
+
+.eggs-ui .composer input,
+.eggs-ui .search input,
+.eggs-ui .auth-form input {
+  transition: background 0.2s, box-shadow 0.2s;
+}
+.eggs-ui .composer input:focus,
+.eggs-ui .search input:focus,
+.eggs-ui .auth-form input:focus {
+  background: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 0 0 2px rgba(255, 216, 77, 0.28);
+}
+
+/* Boutons : un léger relief au survol, un retour au clic */
+.eggs-ui .soft-btn,
+.eggs-ui .account-btn {
+  transition: background 0.2s, color 0.2s, transform 0.12s, box-shadow 0.2s;
+}
+.eggs-ui .soft-btn:hover,
+.eggs-ui .account-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.28);
+}
+.eggs-ui .soft-btn:active,
+.eggs-ui .account-btn:active,
+.eggs-ui .round-btn:active,
+.eggs-ui .pin-btn:active,
+.eggs-ui .composer button:active {
+  transform: scale(0.94);
+}
+
+.eggs-ui .composer button,
+.eggs-ui .round-btn {
+  box-shadow: 0 2px 8px rgba(255, 216, 77, 0.25);
+  transition: transform 0.15s, box-shadow 0.2s;
+}
+.eggs-ui .composer button:hover,
+.eggs-ui .round-btn:hover {
+  box-shadow: 0 3px 14px rgba(255, 216, 77, 0.4);
+  transform: scale(1.06);
+}
+
+/* Bulles de message : un peu plus de relief */
+.eggs-ui .bubble.mine {
+  background: linear-gradient(155deg, rgba(255, 216, 77, 0.28), rgba(255, 216, 77, 0.14));
+}
+.eggs-ui .bubble.theirs {
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+/* Point « non lu » : un léger halo */
+.eggs-ui .unread-dot {
+  box-shadow: 0 0 0 3px rgba(255, 216, 77, 0.16);
+}
+
+/* Onglet actif : petit trait sous l'icône */
+.eggs-ui .tab {
+  position: relative;
+}
+.eggs-ui .tab.active::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  width: 14px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--accent);
+}
+
+/* ---- Connexion au serveur, présence, accusés de lecture ---- */
+.eggs-ui .conn-banner {
+  flex: none;
+  padding: 5px 10px;
+  font-size: 10.5px;
+  text-align: center;
+  color: #ffb199;
+  background: rgba(255, 138, 128, 0.12);
+}
+
+.eggs-ui .presence-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-left: 6px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.15);
+  vertical-align: middle;
+}
+.eggs-ui .presence-dot.on {
+  background: #8fe3b0;
+  box-shadow: 0 0 0 2px rgba(143, 227, 176, 0.18);
+}
+
+.eggs-ui .time-divider {
+  align-self: center;
+  margin: 6px 0 2px;
+  font-size: 10px;
+  color: var(--muted);
+}
+
+.eggs-ui .seen-mark {
+  align-self: flex-end;
+  margin: -2px 6px 2px;
+  font-size: 10px;
+  color: var(--muted);
+}
+
+/* ---- Retirer un ami ---- */
+.eggs-ui .remove-btn {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.35);
+  font-size: 11px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.eggs-ui .remove-btn:hover {
+  background: rgba(255, 138, 128, 0.14);
+  color: #ff8a80;
+}
+.eggs-ui .remove-btn.confirm {
+  background: #ff8a80;
+  color: #1a1a1a;
+  border-color: transparent;
+}
+
+/* ---- Salons ---- */
+.eggs-ui .salon-mine-tag {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--muted);
+}
+.eggs-ui .salon-count {
+  flex: none;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  display: grid;
+  place-items: center;
+  background: var(--accent);
+  color: #1a1a1a;
+  font-size: 11px;
+  font-weight: 600;
+}
+.eggs-ui .salon-empty {
+  text-align: center;
+  font-size: 13px;
+  color: var(--muted);
+  margin-top: 30px;
+}
+.eggs-ui .salon-rename {
+  flex: 1;
+  min-width: 0;
+}
+.eggs-ui .salon-rename input {
+  width: 100%;
+  box-sizing: border-box;
+  border: 0;
+  outline: 0;
+  border-radius: 10px;
+  padding: 5px 8px;
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--text);
+  caret-color: var(--text);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+}
+.eggs-ui .salon-rename-btn {
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font-size: 12px;
+  margin-left: 6px;
+  cursor: pointer;
+  padding: 2px 4px;
+}
+.eggs-ui .salon-rename-btn:hover {
+  color: var(--text);
+}
+.eggs-ui .salon-presence {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 0 10px 8px;
+}
+.eggs-ui .salon-presence-empty {
+  font-size: 12px;
+  color: var(--muted);
+  padding: 4px 2px;
+}
+.eggs-ui .salon-chip {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px 3px 3px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 11.5px;
+}
+.eggs-ui .salon-chip-name {
+  white-space: nowrap;
+}
+.eggs-ui .salon-chip-block {
+  flex: none;
+  width: 15px;
+  height: 15px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: none;
+  color: rgba(255, 255, 255, 0.35);
+  font-size: 9px;
+  line-height: 1;
+  cursor: pointer;
+}
+.eggs-ui .salon-chip-block:hover {
+  background: rgba(255, 138, 128, 0.2);
+  color: #ff8a80;
+}
+.eggs-ui .salon-error {
+  margin: 0 10px 8px;
+}
+.eggs-ui .salon-enter {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 20px;
+  text-align: center;
+}
+.eggs-ui .salon-chat-empty {
+  text-align: center;
+  font-size: 12px;
+  color: var(--muted);
+  padding: 10px;
+}
+.eggs-ui .salon-bubble-author {
+  display: block;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--accent);
+  margin-bottom: 2px;
+}
+.eggs-ui .salon-leave-btn {
+  align-self: center;
+  margin: 0 0 10px;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font-size: 11.5px;
+  cursor: pointer;
+  padding: 4px 8px;
+}
+.eggs-ui .salon-leave-btn:hover {
+  color: var(--text);
+  text-decoration: underline;
+}
+.eggs-ui .salon-blocks {
+  padding: 8px 12px 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}

@@ -1,0 +1,226 @@
+/* Fenêtre d'un pet épinglé : mêmes animations que mon pet, sur le bord de son choix */
+
+.pw {
+  position: fixed;
+  inset: 0;
+  box-sizing: border-box;
+  display: flex;
+  overflow: hidden;
+}
+
+/* Caché par défaut : poussé hors de la fenêtre, donc hors de l'écran */
+.pw-mover {
+  transform: translate(var(--hx), var(--hy));
+}
+
+.pw[data-phase="arriving"] .pw-mover {
+  animation: pw-arrive 1.4s linear forwards;
+}
+.pw[data-phase="visible"] .pw-mover,
+.pw[data-phase="interacting"] .pw-mover,
+.pw[data-phase="dragging"] .pw-mover {
+  transform: translate(0, 0);
+}
+.pw[data-phase="exiting"] .pw-mover {
+  animation: pw-leave 1.1s linear forwards;
+}
+
+@keyframes pw-arrive {
+  from { transform: translate(var(--hx), var(--hy)); }
+  to   { transform: translate(0, 0); }
+}
+@keyframes pw-leave {
+  from { transform: translate(0, 0); }
+  to   { transform: translate(var(--hx), var(--hy)); }
+}
+
+/* Le pet, à la taille choisie */
+.pw-scale {
+  position: relative;
+  display: block;
+  width: var(--size);
+  height: var(--size);
+}
+.pw-inner {
+  display: block;
+  width: 96px;
+  height: 96px;
+  transform: scale(var(--k));
+  transform-origin: top left;
+}
+
+.pw[data-phase="visible"] .pw-scale {
+  cursor: grab;
+}
+.pw[data-phase="dragging"] .pw-scale {
+  cursor: grabbing;
+}
+
+/* Animations du corps (les keyframes viennent de App.css) */
+.pw[data-phase="arriving"] .pet-body,
+.pw[data-phase="exiting"] .pet-body {
+  animation: walk 0.38s ease-in-out infinite;
+}
+.pw[data-phase="visible"] .pet-body {
+  animation: idle 3s ease-in-out infinite;
+}
+.pw[data-phase="interacting"] .pet-body {
+  animation: joy 0.7s ease-out;
+}
+
+/* Bulle « vient d'écrire » : juste un symbole (pas le texte, pour rester
+   discret), au-dessus de la tête, quelques secondes. */
+.pw-bubble {
+  position: absolute;
+  transform: translate(-50%, 0);
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 22px;
+  border-radius: 11px 11px 11px 3px;
+  background: #fff;
+  font-size: 13px;
+  line-height: 1;
+  box-shadow:
+    0 3px 10px rgba(0, 0, 0, 0.35),
+    0 0 0 1px rgba(20, 16, 6, 0.12);
+  pointer-events: none;
+}
+.pw-bubble[data-phase="in"] {
+  animation: pw-bubble-in 0.3s cubic-bezier(0.2, 0.8, 0.3, 1.3) both;
+}
+.pw-bubble[data-phase="out"] {
+  animation: pw-bubble-out 0.35s ease-in both;
+}
+@keyframes pw-bubble-in {
+  from { opacity: 0; transform: translate(-50%, 6px) scale(0.6); }
+  to   { opacity: 1; transform: translate(-50%, 0) scale(1); }
+}
+@keyframes pw-bubble-out {
+  from { opacity: 1; transform: translate(-50%, 0) scale(1); }
+  to   { opacity: 0; transform: translate(-50%, -6px) scale(0.7); }
+}
+/* ================= Bouton rond + chat du pet épinglé ================= */
+
+.pw-btn {
+  position: absolute;
+  width: 9px;
+  height: 9px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle at 34% 30%, #fffdf3 0%, #ffe28a 55%, #ffc94d 100%);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.55),
+    0 2px 8px rgba(255, 190, 60, 0.35),
+    /* liseré sombre : le bouton flotte sur le bureau (fond variable), donc
+       il reste visible même quand ce fond est blanc/clair. */
+    0 0 0 1px rgba(20, 16, 6, 0.25);
+  opacity: 0.55;
+  cursor: pointer;
+  pointer-events: none;
+  transition: opacity 0.25s, transform 0.2s, background 0.2s, box-shadow 0.2s;
+}
+.pw[data-phase="visible"] .pw-btn,
+.pw[data-phase="interacting"] .pw-btn {
+  pointer-events: auto;
+}
+/* Au survol : une couleur nettement plus soutenue (pas juste plus opaque),
+   pour qu'on la voie même sur un fond blanc. */
+.pw[data-phase="visible"] .pw-btn:hover,
+.pw[data-phase="interacting"] .pw-btn:hover {
+  opacity: 1;
+  transform: scale(1.35);
+  background: radial-gradient(circle at 34% 30%, #ffe9a0 0%, #ffbb33 55%, #f2900a 100%);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.6),
+    0 3px 10px rgba(255, 150, 20, 0.55),
+    0 0 0 1.25px rgba(20, 16, 6, 0.4);
+}
+/* Le bouton s'efface pendant que le chat est ouvert */
+.pw[data-open="true"] .pw-btn {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Message non lu : le même bouton passe au rouge-corail (au lieu de rajouter
+   un deuxième rond) — il indique déjà « il y a une conversation ici », il
+   suffit qu'il dise aussi « ... avec quelque chose de nouveau ». */
+.pw-btn[data-unread="true"] {
+  background: radial-gradient(circle at 34% 30%, #fff5f3 0%, #ff8a7a 55%, #ff5a4e 100%);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.55),
+    0 2px 8px rgba(255, 90, 78, 0.45),
+    0 0 0 1px rgba(20, 16, 6, 0.25);
+  opacity: 0.85;
+}
+.pw[data-phase="visible"] .pw-btn[data-unread="true"]:hover,
+.pw[data-phase="interacting"] .pw-btn[data-unread="true"]:hover {
+  background: radial-gradient(circle at 34% 30%, #ffb3a8 0%, #ff6a56 55%, #e8402f 100%);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.6),
+    0 3px 10px rgba(255, 90, 60, 0.6),
+    0 0 0 1.25px rgba(20, 16, 6, 0.4);
+}
+
+/* Le chat : le bouton grandit et devient la fenêtre */
+.pw-panel {
+  position: absolute;
+  left: var(--bx);
+  top: var(--by);
+  width: 9px;
+  height: 9px;
+  border-radius: 5px;
+  overflow: hidden;
+  background: #15151b;
+  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.4);
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    left 0.36s cubic-bezier(0.2, 0.8, 0.25, 1),
+    top 0.36s cubic-bezier(0.2, 0.8, 0.25, 1),
+    width 0.36s cubic-bezier(0.2, 0.8, 0.25, 1),
+    height 0.36s cubic-bezier(0.2, 0.8, 0.25, 1),
+    border-radius 0.36s ease,
+    opacity 0.12s;
+}
+/* Doit correspondre à PW/PH dans App.tsx et PinnedWindow.tsx. */
+.pw-panel.open {
+  left: var(--px);
+  top: var(--py);
+  width: 250px;
+  height: 400px;
+  border-radius: 18px;
+  opacity: 1;
+  pointer-events: auto;
+}
+.pw-panel-inner {
+  position: relative;
+  width: 250px;
+  height: 400px;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.pw-panel.open .pw-panel-inner {
+  opacity: 1;
+  transition: opacity 0.2s 0.2s;
+}
+.pw-conv {
+  position: absolute;
+  inset: 0;
+}
+/* Zone de clic invisible, plus large que le bouton */
+.pw-btn::after {
+  content: "";
+  position: absolute;
+  inset: -8px;
+  border-radius: 50%;
+}
+/* ================= Habillage : finitions du chat épinglé ================= */
+
+.pw-panel {
+  background: linear-gradient(165deg, #1e1e26 0%, #16161c 55%, #101014 100%);
+  box-shadow:
+    0 14px 34px rgba(0, 0, 0, 0.45),
+    0 1px 0 rgba(255, 255, 255, 0.05) inset;
+}
