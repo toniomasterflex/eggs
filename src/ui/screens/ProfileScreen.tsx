@@ -6,13 +6,17 @@ import { setPinnedOnDesktop, useSettings } from "../../data/settings";
 import AccountScreen from "./AccountScreen";
 import CustomizeScreen from "./CustomizeScreen";
 import SettingsScreen from "./SettingsScreen";
+import ShopScreen from "./ShopScreen";
 
 export default function ProfileScreen() {
   const session = useSession();
   const { creatures } = useCollection();
   const { pinnedOnDesktop } = useSettings();
   const [index, setIndex] = useState(0);
-  const [view, setView] = useState<"main" | "customize" | "account" | "settings">("main");
+  // Le Shop vit ici plutôt que dans un onglet séparé (voir MainApp.tsx) —
+  // demande du 26/09/2026 : le proposer juste sous la collection, comme un
+  // sous-menu de plus, au même titre que Réglages/Mon compte.
+  const [view, setView] = useState<"main" | "customize" | "shop" | "account" | "settings">("main");
 
   // Se place sur la créature active dès qu'on la connaît (ou si elle change
   // ailleurs, par ex. depuis Ma collection ou une autre fenêtre d'Eggs).
@@ -22,6 +26,7 @@ export default function ProfileScreen() {
   }, [creatures]);
 
   if (view === "customize") return <CustomizeScreen onBack={() => setView("main")} />;
+  if (view === "shop") return <ShopScreen onBack={() => setView("main")} />;
   if (view === "account") return <AccountScreen onBack={() => setView("main")} />;
   if (view === "settings") return <SettingsScreen onBack={() => setView("main")} />;
 
@@ -36,9 +41,8 @@ export default function ProfileScreen() {
   };
 
   return (
-    <section className="screen">
+    <section className="screen screen-tab">
       <span className="screen-eyebrow">Mon compte</span>
-      <h1>Profil</h1>
       <div className="profile-hero">
         <div className="collection-carousel">
           <button
@@ -79,6 +83,9 @@ export default function ProfileScreen() {
         <div className="profile-actions">
           <button className="soft-btn" onClick={() => setView("customize")}>
             Ma collection
+          </button>
+          <button className="soft-btn" onClick={() => setView("shop")}>
+            Boutique
           </button>
           <button className="soft-btn" onClick={() => setView("settings")}>
             Réglages

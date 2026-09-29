@@ -8,6 +8,11 @@ body,
   background: transparent;
   overflow: hidden;
   user-select: none;
+  /* Typo de l'appli (Plus Jakarta Sans, voir ui.css pour les @font-face et
+     le pourquoi) posée ici aussi : le chrome hors de .eggs-ui — barre de
+     titre du panneau (App.tsx), bulles de texte du pet sur le bureau —
+     doit en hériter tout autant. */
+  font-family: "Plus Jakarta Sans", "Segoe UI", system-ui, sans-serif;
 }
 
 .stage {

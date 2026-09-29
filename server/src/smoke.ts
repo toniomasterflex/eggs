@@ -28,6 +28,13 @@ async function api(method: string, path: string, body?: unknown, token?: string)
   return { status: res.status, data: data as any };
 }
 
+/** Pour les routes qui répondent en HTML, pas en JSON (voir GET
+ *  /verify-email/:token) — on vérifie juste le texte affiché. */
+async function apiRaw(method: string, path: string) {
+  const res = await fetch(BASE + path, { method });
+  return { status: res.status, text: await res.text() };
+}
+
 function connect(token: string): Promise<{ ws: WebSocket; events: any[] }> {
   return new Promise((resolve, reject) => {
     const ws = new WebSocket(`${WS_BASE}/ws?token=${encodeURIComponent(token)}`);
@@ -51,6 +58,10 @@ async function waitFor(events: any[], pred: (e: any) => boolean, ms = 8000) {
 const suffix = Math.random().toString(36).slice(2, 7);
 const aliceName = `alice_${suffix}`;
 const bobName = `bob_${suffix}`;
+// Email demandé à l'inscription depuis le 27/09/2026 (voir index.ts /
+// db.ts) — pas encore vérifié, juste collecté et unique.
+const aliceEmail = `alice_${suffix}@example.com`;
+const bobEmail = `bob_${suffix}@example.com`;
 
 console.log("Serveur :", BASE);
 
@@ -58,19 +69,52 @@ console.log("\nComptes");
 let r = await api("GET", "/health");
 check("le serveur répond", r.status === 200);
 
-r = await api("POST", "/auth/register", { username: aliceName, password: "court" });
+r = await api("POST", "/auth/register", { username: aliceName, email: aliceEmail, password: "court" });
 check("mot de passe trop court refusé", r.status === 400, r);
 
-r = await api("POST", "/auth/register", { username: aliceName, password: "motdepasse1" });
+r = await api("POST", "/auth/register", { username: aliceName, email: "pas-un-email", password: "motdepasse1" });
+check("email invalide refusé", r.status === 400, r);
+
+r = await api("POST", "/auth/register", { username: aliceName, email: aliceEmail, password: "motdepasse1" });
 check("création du compte Alice", r.status === 201 && !!r.data?.token, r);
 const alice = r.data;
 
-r = await api("POST", "/auth/register", { username: aliceName.toUpperCase(), password: "motdepasse1" });
+r = await api("POST", "/auth/register", { username: aliceName.toUpperCase(), email: bobEmail, password: "motdepasse1" });
 check("pseudo déjà pris refusé (même en majuscules)", r.status === 409, r);
 
-r = await api("POST", "/auth/register", { username: bobName, password: "motdepasse2" });
+r = await api("POST", "/auth/register", { username: bobName, email: aliceEmail.toUpperCase(), password: "motdepasse2" });
+check("email déjà utilisé refusé (même en majuscules)", r.status === 409, r);
+
+r = await api("POST", "/auth/register", { username: bobName, email: bobEmail, password: "motdepasse2" });
 check("création du compte Bob", r.status === 201, r);
 const bob = r.data;
+
+console.log("\nEmail (vérification)");
+// Pas de RESEND_API_KEY dans cet environnement de test : /auth/register
+// renvoie le jeton directement (voir index.ts) plutôt que de l'envoyer pour
+// de vrai, exprès pour permettre ce genre de test automatique.
+check("Alice a un jeton de vérification (mode développement)", !!alice.devVerificationToken, alice);
+
+let raw = await apiRaw("GET", "/verify-email/un-jeton-qui-n-existe-pas");
+check("jeton de vérification inconnu : page d'erreur", raw.status === 200 && raw.text.includes("invalide"), raw.text);
+
+raw = await apiRaw("GET", `/verify-email/${alice.devVerificationToken}`);
+check("vérification de l'email d'Alice : page de confirmation", raw.status === 200 && raw.text.includes("confirmé"), raw.text);
+
+r = await api("GET", "/me", undefined, alice.token);
+check("email d'Alice marqué vérifié", r.data?.emailVerified === true, r.data);
+
+raw = await apiRaw("GET", `/verify-email/${alice.devVerificationToken}`);
+check("un jeton déjà utilisé ne remarche pas", raw.status === 200 && raw.text.includes("invalide"), raw.text);
+
+r = await api("POST", "/me/resend-verification", undefined, bob.token);
+check("renvoi de l'email de vérification pour Bob", r.status === 200 && !!r.data?.devVerificationToken, r);
+
+raw = await apiRaw("GET", `/verify-email/${r.data.devVerificationToken}`);
+check("vérification de l'email de Bob", raw.status === 200 && raw.text.includes("confirmé"), raw.text);
+
+r = await api("POST", "/me/resend-verification", undefined, bob.token);
+check("renvoi refusé une fois déjà vérifié", r.status === 200 && r.data?.alreadyVerified === true, r);
 
 r = await api("POST", "/auth/login", { username: aliceName, password: "mauvais-mot-de-passe" });
 check("mauvais mot de passe refusé", r.status === 401, r);

@@ -12,18 +12,18 @@ const minutesAgo = (n: number) => Date.now() - n * 60000;
 
 export const INITIAL_MESSAGES: Record<string, Message[]> = {
   lea: [
-    { id: "l1", mine: false, text: "Salut", time: minutesAgo(42) },
-    { id: "l2", mine: false, text: "Tu fais quoi ?", time: minutesAgo(41) },
-    { id: "l3", mine: true, text: "Pas grand-chose, et toi ?", time: minutesAgo(38) },
-    { id: "l4", mine: false, text: "Ça va ?", time: minutesAgo(5) },
+    { id: "l1", from: "lea", mine: false, text: "Salut", time: minutesAgo(42), attachment: null, reactions: [] },
+    { id: "l2", from: "lea", mine: false, text: "Tu fais quoi ?", time: minutesAgo(41), attachment: null, reactions: [] },
+    { id: "l3", from: "me", mine: true, text: "Pas grand-chose, et toi ?", time: minutesAgo(38), attachment: null, reactions: [] },
+    { id: "l4", from: "lea", mine: false, text: "Ça va ?", time: minutesAgo(5), attachment: null, reactions: [] },
   ],
   thomas: [
-    { id: "t1", mine: true, text: "On se voit ce soir ?", time: minutesAgo(120) },
-    { id: "t2", mine: false, text: "Oui, 20h ?", time: minutesAgo(118) },
+    { id: "t1", from: "me", mine: true, text: "On se voit ce soir ?", time: minutesAgo(120), attachment: null, reactions: [] },
+    { id: "t2", from: "thomas", mine: false, text: "Oui, 20h ?", time: minutesAgo(118), attachment: null, reactions: [] },
   ],
   lucas: [
-    { id: "u1", mine: false, text: "Tu as vu le match ?", time: minutesAgo(300) },
-    { id: "u2", mine: true, text: "Oui, incroyable", time: minutesAgo(298) },
+    { id: "u1", from: "lucas", mine: false, text: "Tu as vu le match ?", time: minutesAgo(300), attachment: null, reactions: [] },
+    { id: "u2", from: "me", mine: true, text: "Oui, incroyable", time: minutesAgo(298), attachment: null, reactions: [] },
   ],
 };
 

@@ -8,6 +8,32 @@
   overflow: hidden;
 }
 
+/* Depuis le 29/09/2026 : une créature de l'herbe (ami épinglé, ou une des
+   miennes) ne vit plus dans sa propre fenêtre — inset:0 n'a alors plus de
+   sens (cette boîte n'est plus TOUTE la fenêtre, juste une créature parmi
+   d'autres dans la fenêtre partagée "pets", voir GroundPetsWindow.tsx) :
+   positionnée en absolu, à la position locale reçue de Rust (--gx/--gy,
+   voir tick_pinned/local_xy côté Rust). "main" garde sa propre fenêtre,
+   inchangée (position: fixed; inset: 0 ci-dessus).
+   pointer-events: none par défaut : les boîtes de deux créatures voisines
+   peuvent se chevaucher (chacune fait toujours 800×800, indépendamment de
+   la taille réelle du pet dedans) — sans ça, la zone transparente de l'une
+   pourrait intercepter un clic destiné au pet visible de l'autre, juste en
+   dessous dans le DOM. Seules les parties réellement interactives
+   (.pw-scale, .pw-btn, .pw-panel) redeviennent cliquables ci-dessous. */
+.pw[data-shared="true"] {
+  position: absolute;
+  inset: auto;
+  left: var(--gx);
+  top: var(--gy);
+  width: 800px;
+  height: 800px;
+  pointer-events: none;
+}
+.pw[data-shared="true"] .pw-scale {
+  pointer-events: auto;
+}
+
 /* Caché par défaut : poussé hors de la fenêtre, donc hors de l'écran */
 .pw-mover {
   transform: translate(var(--hx), var(--hy));
@@ -68,22 +94,37 @@
   animation: joy 0.7s ease-out;
 }
 
-/* Bulle « vient d'écrire » : juste un symbole (pas le texte, pour rester
-   discret), au-dessus de la tête, quelques secondes. */
+/* Bulle « vient d'écrire », avec le texte du message : même esprit que la
+   carte "nouveau message" (fond dégradé sombre, coins ronds, voir
+   pet/toast.css) mais avec une pointe façon bande dessinée qui désigne le
+   pet (coin bas-gauche resté droit). Au-dessus de la tête, quelques
+   secondes. Plus étroite et sur plusieurs lignes (3 maxi) plutôt qu'une
+   seule ligne très large — plus proche d'une vraie bulle de BD.
+   Le texte est déjà raccourci en JS avant d'arriver ici (voir
+   BUBBLE_MAX_CHARS dans PinnedWindow.tsx, qui ajoute lui-même les « … ») :
+   -webkit-line-clamp ne coupait pas toujours net selon les mots/polices et
+   laissait dépasser le haut d'une 4e ligne. Le max-height ici n'est donc
+   qu'un filet de sécurité, avec de la marge (pas calé pile sur 3 lignes)
+   pour ne pas revivre le souci inverse (jambages rognés, voir toast.css). */
 .pw-bubble {
   position: absolute;
   transform: translate(-50%, 0);
-  display: grid;
-  place-items: center;
-  width: 26px;
-  height: 22px;
-  border-radius: 11px 11px 11px 3px;
-  background: #fff;
-  font-size: 13px;
-  line-height: 1;
+  display: block;
+  width: max-content;
+  max-width: 130px;
+  max-height: 62px;
+  padding: 7px 11px;
+  border-radius: 14px 14px 14px 4px;
+  background: linear-gradient(165deg, #1e1e26 0%, #16161c 55%, #101014 100%);
+  color: #f5f1e8;
+  font: 12px/16px system-ui, sans-serif;
+  text-align: left;
+  white-space: normal;
+  overflow-wrap: break-word;
+  overflow: hidden;
   box-shadow:
-    0 3px 10px rgba(0, 0, 0, 0.35),
-    0 0 0 1px rgba(20, 16, 6, 0.12);
+    0 6px 18px rgba(0, 0, 0, 0.4),
+    0 1px 0 rgba(255, 255, 255, 0.05) inset;
   pointer-events: none;
 }
 .pw-bubble[data-phase="in"] {
@@ -207,7 +248,89 @@
 }
 .pw-conv {
   position: absolute;
-  inset: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+}
+/* Seul le panneau "app complète" (App.tsx, avec sa .panel-titlebar
+   logo + réduire/fermer) doit laisser la place de cette barre en haut.
+   Le panneau d'une créature de l'herbe (GroundPet.tsx) n'a pas de
+   titlebar — juste .panel-close flottant dans le coin — et affichait donc
+   34px de vide avant la conversation (voir .conv-header dans ui.css, qui
+   réserve déjà sa marge droite pour ce bouton) : signalé par Antoine le
+   30/09/2026 ("le haut est très vide"). */
+.panel-titlebar + .pw-conv {
+  top: 34px;
+}
+
+/* Barre de titre du panneau (logo + réduire/fermer) — voir le commentaire
+   dans App.tsx : pas une vraie fenêtre système, les deux boutons replient
+   simplement le panneau. */
+.panel-titlebar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 34px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 6px 0 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+/* Logotype "Egg" (voir src/assets/brand/egg-logo.png — juste le mot "Egg"
+   en lettres bulles, jaune coquille d'œuf, fond transparent ; asset fourni
+   par Antoine le 29/09/2026). Uniquement le nom ici : la mascotte seule
+   (egg-icon-mascot.png, même dossier) sert déjà ailleurs, dans l'icône de
+   la barre de notification Windows — d'où l'image + texte tentée un temps
+   dans cette barre de titre, mais Antoine a demandé de revenir au texte
+   seul pour ne pas dupliquer la mascotte ici. remplace l'ancienne icône
+   emoji + le texte "Eggs" en Orbitron par ce seul lockup image. flex: 1
+   pour pousser les boutons à droite ; largeur libre (le PNG a son propre
+   ratio, object-fit: contain), hauteur calée sur la barre (20px) avec un
+   peu de marge. */
+.panel-titlebar-logo {
+  flex: 1;
+  min-width: 0;
+  height: 20px;
+  width: auto;
+  object-fit: contain;
+  object-position: left center;
+}
+.panel-titlebar-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.panel-title-btn {
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.06);
+  color: #8b8b98;
+  font-size: 12px;
+  line-height: 1;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, transform 0.15s;
+}
+.panel-title-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #eeeef2;
+}
+.panel-title-btn.close:hover {
+  background: rgba(255, 90, 90, 0.22);
+  color: #ffb4b4;
+  /* Même petite animation que .panel-close (App.css, bouton fermer des
+     créatures posées sur l'herbe) — Antoine l'aime bien et a demandé de
+     la généraliser à tous les boutons fermer de l'appli (30/09/2026). */
+  transform: rotate(90deg);
 }
 /* Zone de clic invisible, plus large que le bouton */
 .pw-btn::after {

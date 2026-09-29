@@ -1,0 +1,68 @@
+/* Petite carte "nouveau message" (voir ToastWindow.tsx), maison plutôt
+   qu'une notification Windows — mêmes couleurs/coins que le panneau Eggs
+   (.panel, App.css) pour rester dans l'esprit de l'appli. */
+
+.toast-card {
+  position: fixed;
+  /* La fenêtre fait EXACTEMENT la taille de la carte (voir TOAST_W/TOAST_H
+     dans lib.rs) : pas de marge autour. Sur Windows, le petit bandeau
+     transparent qu'on avait entre la carte et le bord de la fenêtre (+ l'ombre
+     qui débordait dessus) ne se composait pas correctement avec le bureau et
+     ressortait en rectangle noir — en supprimant cette marge et l'ombre qui
+     en dépendait, il n'y a plus rien à mal composer. */
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center; /* écart identique à gauche du rond et à droite du texte */
+  gap: 6px;
+  padding: 0 10px;
+  border-radius: 14px;
+  background: linear-gradient(165deg, #1e1e26 0%, #16161c 55%, #101014 100%);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.05) inset;
+  color: #f5f1e8;
+  font: 12px/1.35 system-ui, sans-serif;
+  pointer-events: none; /* la fenêtre elle-même laisse déjà tout traverser */
+}
+
+.toast-card[data-phase="in"] {
+  animation: toast-in 0.32s cubic-bezier(0.2, 0.8, 0.3, 1.25) both;
+}
+.toast-card[data-phase="out"] {
+  animation: toast-out 0.35s ease-in both;
+}
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+@keyframes toast-out {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(10px) scale(0.94);
+  }
+}
+
+/* Petit point doré plutôt que rouge : un signal doux, pas une alerte. */
+.toast-dot {
+  width: 8px;
+  height: 8px;
+  flex: none;
+  border-radius: 50%;
+  background: radial-gradient(circle at 34% 30%, #fffdf3 0%, #ffe28a 55%, #ffc94d 100%);
+  box-shadow: 0 0 0 1px rgba(20, 16, 6, 0.25);
+}
+
+.toast-text {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}

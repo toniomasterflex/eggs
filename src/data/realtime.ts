@@ -172,4 +172,36 @@ export const realtime = {
     if (!socket || socket.readyState !== WebSocket.OPEN) return;
     socket.send(JSON.stringify({ type: "salon-message", salonId, text }));
   },
+
+  // -------------------------------------------------- Appel de salon (WebRTC)
+  //
+  // Le serveur ne fait ici que relayer entre les bonnes personnes (voir
+  // server/src/index.ts et calls.ts) : la voix et l'écran passent en direct
+  // d'un appareil à l'autre, jamais par le serveur — voir data/salonCall.ts.
+
+  /** Rejoint l'appel du salon donné (faut déjà être présent dans le salon —
+   *  vérifié côté serveur). */
+  joinCall(salonId: string) {
+    if (!socket || socket.readyState !== WebSocket.OPEN) return;
+    socket.send(JSON.stringify({ type: "call-join", salonId }));
+  },
+
+  leaveCall(salonId: string) {
+    if (!socket || socket.readyState !== WebSocket.OPEN) return;
+    socket.send(JSON.stringify({ type: "call-leave", salonId }));
+  },
+
+  /** Relais de signalisation WebRTC (offre/réponse SDP, candidat ICE) vers une
+   *  personne précise du même appel. */
+  sendCallSignal(salonId: string, to: string, data: unknown) {
+    if (!socket || socket.readyState !== WebSocket.OPEN) return;
+    socket.send(JSON.stringify({ type: "call-signal", salonId, to, data }));
+  },
+
+  /** État léger (micro coupé, partage d'écran actif) pour l'affichage chez
+   *  les autres participants de l'appel — jamais de contenu média ici. */
+  sendCallMedia(salonId: string, micOn: boolean, screenSharing: boolean) {
+    if (!socket || socket.readyState !== WebSocket.OPEN) return;
+    socket.send(JSON.stringify({ type: "call-media", salonId, micOn, screenSharing }));
+  },
 };

@@ -2,10 +2,13 @@ import { useState } from "react";
 import type { FormEvent } from "react";
 import { ApiError, SERVER_URL, saveServerUrl } from "../../data/api";
 import { login, register } from "../../data/session";
+import authBgPattern from "../../assets/brand/decor/pattern-blob-warm.png";
+import authDroplets from "../../assets/brand/decor/droplets.png";
 
 export default function LoginScreen() {
   const [mode, setMode] = useState<"login" | "register">("login");
   const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [again, setAgain] = useState("");
   const [visible, setVisible] = useState(false);
@@ -25,7 +28,7 @@ export default function LoginScreen() {
     setError("");
     try {
       if (mode === "login") await login(username.trim(), password);
-      else await register(username.trim(), password);
+      else await register(username.trim(), email.trim(), password);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Erreur inattendue.");
     } finally {
@@ -37,6 +40,10 @@ export default function LoginScreen() {
 
   return (
     <section className="screen auth">
+      {/* Décor discret de la charte graphique (30/09/2026) — voir le
+          commentaire dans ui.css juste avant .screen.auth. */}
+      <img className="auth-bg-pattern" src={authBgPattern} alt="" aria-hidden="true" />
+      <img className="auth-deco-droplets" src={authDroplets} alt="" aria-hidden="true" />
       <h1>{register_ ? "Créer un compte" : "Connexion"}</h1>
       <form className="auth-form" onSubmit={submit}>
         <input
@@ -46,6 +53,15 @@ export default function LoginScreen() {
           placeholder="Pseudo"
           autoComplete="username"
         />
+        {register_ && (
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="Adresse email"
+            autoComplete="email"
+          />
+        )}
         <input
           type={visible ? "text" : "password"}
           value={password}
@@ -67,7 +83,11 @@ export default function LoginScreen() {
           Afficher le mot de passe
         </label>
         {error && <p className="auth-error">{error}</p>}
-        <button className="soft-btn" type="submit" disabled={busy || !username.trim() || !password || (register_ && !again)}>
+        <button
+          className="soft-btn"
+          type="submit"
+          disabled={busy || !username.trim() || !password || (register_ && (!email.trim() || !again))}
+        >
           {busy ? "..." : register_ ? "Créer mon compte" : "Se connecter"}
         </button>
       </form>
@@ -76,6 +96,7 @@ export default function LoginScreen() {
         onClick={() => {
           setMode(register_ ? "login" : "register");
           setError("");
+          setEmail("");
           setAgain("");
         }}
       >

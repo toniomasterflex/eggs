@@ -4,17 +4,21 @@ import { invoke } from "@tauri-apps/api/core";
 import { emit } from "@tauri-apps/api/event";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { DEFAULT_SIZE, ME_GROUND_ID, ME_ID, getPlacement, savePlacement, selfPinId } from "./data/placements";
+import { getCurrent as getCurrentDeepLinkUrls, onOpenUrl } from "@tauri-apps/plugin-deep-link";
+import { ME_GROUND_ID, ME_ID, getPlacement, savePlacement, selfPinId } from "./data/placements";
 import type { Edge, Placement } from "./data/placements";
-import { colorValue, takeDragPinId, useCollection } from "./data/profile";
+import { colorValue, useCollection } from "./data/profile";
 import { ME, realtime } from "./data/realtime";
+import { previewSalon } from "./data/salons";
 import { useMyAppearance } from "./data/session";
 import { syncSettingsToBackend, useSettings } from "./data/settings";
-import { openChat, useChatStore } from "./data/store";
+import { onLiveMessage, openChat, useChatStore } from "./data/store";
 import PetSprite from "./pet/PetSprite";
 import { spriteTopOverflow } from "./pet/spriteGeometry";
+import { truncateBubble } from "./pet/bubbleText";
 import { initialPetState, petReducer } from "./petMachine";
 import MainApp from "./ui/MainApp";
+import eggLogo from "./assets/brand/egg-logo.png";
 import "./App.css";
 import "./pet/pinned.css";
 
@@ -83,6 +87,28 @@ function petBox(edge: Edge, size: number) {
 
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
 
+// Lien de salon partageable : eggs://salon/<ownerId> (voir tauri.conf.json,
+// src-tauri/Cargo.toml/lib.rs, et server/src/index.ts pour la page relais
+// https://.../join/<ownerId> qui déclenche ce lien depuis un vrai
+// navigateur). On n'accepte que ce format précis, hôte "salon" suivi d'un
+// seul segment de chemin — le reste est ignoré silencieusement.
+function salonIdFromDeepLink(url: string): string | null {
+  try {
+    const u = new URL(url);
+    if (u.protocol !== "eggs:") return null;
+    // Selon la plateforme, "salon" atterrit soit dans `host` (eggs://salon/x)
+    // soit comme premier segment de `pathname` (eggs:salon/x) — on couvre les
+    // deux pour rester robuste.
+    const host = u.hostname || u.host;
+    const segments = u.pathname.split("/").filter(Boolean);
+    if (host === "salon" && segments.length >= 1) return segments[0];
+    if (segments[0] === "salon" && segments.length >= 2) return segments[1];
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 function App() {
   const [pet, dispatch] = useReducer(petReducer, initialPetState);
   // Épinglée sur le bureau (bouton dans Profil) : ma créature ne repart
@@ -99,6 +125,15 @@ function App() {
   const [walkDir, setWalkDir] = useState<"left" | "right" | null>(null);
   const [open, setOpen] = useState(false);
   const [panelPos, setPanelPos] = useState({ x: 0, y: 0 });
+  // Bulle de bande dessinée « vient d'écrire » : un ami PAS épinglé m'a
+  // écrit, mais moi je suis épinglé(e) et visible — pas de pet à lui sur
+  // lequel afficher sa bulle, alors c'est la mienne qui la montre à sa
+  // place (voir self_pin_active côté Rust / data/notifications.ts, qui
+  // coupe la carte "nouveau message" dans ce cas pour ne pas faire
+  // doublon). Même bulle que pour un ami épinglé, voir pet/GroundPet.tsx.
+  const [bubblePhase, setBubblePhase] = useState<"hidden" | "in" | "out">("hidden");
+  const [bubbleText, setBubbleText] = useState("");
+  const bubbleTimer = useRef<number | undefined>(undefined);
   const look = useMyAppearance(); // toujours celle de ma créature active
   const { pinned = [], unread = {} } = useChatStore();
   const { pinnedCreatures = [] } = useCollection(); // mes créatures posées sur l'herbe
@@ -122,6 +157,9 @@ function App() {
   const btnTop = edge === "top" ? size + 10 : -(BTN + 10 + spriteTopOverflow(look.species) * (size / 96));
   const btnX = box.x + size / 2 - BTN / 2;
   const btnY = box.y + btnTop;
+  // Bulle « vient d'écrire » : encore plus loin du pet que le bouton, du même
+  // côté (au-dessus, ou en dessous si le pet est collé en haut de l'écran).
+  const bubbleTop = edge === "top" ? btnTop + 24 : btnTop - 24;
 
   // Ouvre le panneau Eggs : à côté du pet, en restant dans l'écran.
   const openPanel = async () => {
@@ -159,6 +197,16 @@ function App() {
 
     setPanelPos({ x, y });
     setOpen(true);
+    // La fenêtre est créée avec `focus: false` (voir tauri.conf.json) pour ne
+    // jamais voler le focus tant que le panneau n'est pas ouvert — mais une
+    // fois ouvert, il faut bien le redemander explicitement : sinon les clics
+    // marchent (Windows les route à la fenêtre sous la souris) mais le
+    // clavier continue d'aller à la dernière fenêtre réellement focus, et
+    // aucun champ texte du panneau (nom de groupe, recherche, message...) ne
+    // reçoit jamais ce qu'on tape.
+    getCurrentWindow()
+      .setFocus()
+      .catch(() => {});
   };
 
   const closePanel = () => setOpen(false);
@@ -254,6 +302,44 @@ function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Lien de salon partageable (eggs://salon/<ownerId>) : au démarrage à froid
+  // (l'appli n'était pas lancée, Windows la lance avec le lien en argument)
+  // ET pendant qu'elle tourne déjà (tauri-plugin-single-instance relance
+  // l'appli avec le nouveau lien, tauri-plugin-deep-link l'intercepte au lieu
+  // d'ouvrir une deuxième fenêtre — voir Cargo.toml/lib.rs). Ne marche que sur
+  // une version installée (le protocole eggs:// est enregistré par
+  // l'installeur NSIS) — pas en `npm run tauri dev`.
+  useEffect(() => {
+    let cancelled = false;
+    let unlisten: (() => void) | undefined;
+
+    const openFromUrl = (url: string | null | undefined) => {
+      const ownerId = url ? salonIdFromDeepLink(url) : null;
+      if (!ownerId) return;
+      previewSalon(ownerId).catch(console.error);
+      openPanel();
+    };
+
+    // Démarrage à froid : le lien qui a lancé l'appli, s'il y en a un.
+    getCurrentDeepLinkUrls()
+      .then((urls) => {
+        if (!cancelled) openFromUrl(urls?.[0]);
+      })
+      .catch(console.error);
+
+    // Appli déjà lancée : un nouveau lien arrive en direct.
+    onOpenUrl((urls) => openFromUrl(urls?.[0])).then((fn) => {
+      if (cancelled) fn();
+      else unlisten = fn;
+    });
+
+    return () => {
+      cancelled = true;
+      unlisten?.();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Épinglage activé/désactivé (bouton dans Profil, ou au démarrage si déjà
   // épinglée) : on fait sortir la créature tout de suite, ou — si on vient
   // de désépingler et que la souris n'est déjà plus dans la zone pour de
@@ -295,10 +381,16 @@ function App() {
     };
   }, []);
 
-  // Crée / ferme la fenêtre de chaque pet épinglé — les amis, et mes propres
-  // créatures (non actives) posées sur l'herbe (identifiant préfixé
-  // "self-" via selfPinId, pour ne jamais entrer en collision avec un ami ;
-  // voir PinnedWindow.tsx qui s'en sert pour reconnaître les deux cas).
+  // Ajoute / retire une créature à la simulation côté Rust pour chaque pet
+  // épinglé — les amis, et mes propres créatures (non actives) posées sur
+  // l'herbe (identifiant préfixé "self-" via selfPinId, pour ne jamais
+  // entrer en collision avec un ami ; voir pet/GroundPet.tsx qui s'en sert
+  // pour reconnaître les deux cas). Depuis le 29/09/2026 (fenêtre partagée
+  // "pets", voir pet/GroundPetsWindow.tsx), pin_pet ne crée plus de fenêtre
+  // — juste une entrée dans la simulation — donc plus de paramètre "edge"
+  // (toujours le bas, ground_only côté Rust) ni "drag" (le glisser-déposer
+  // depuis « Ma collection » ne suit plus la souris dès l'apparition, voir
+  // pinCreatureByDrag dans data/profile.ts).
   useEffect(() => {
     const wanted = new Set([...pinned, ...pinnedCreatures.map(selfPinId)]);
 
@@ -307,27 +399,15 @@ function App() {
       created.current.add(id);
       const p = getPlacement(id, index);
       savePlacement(id, p);
-      invoke("pin_pet", { id, edge: p.edge, offset: p.offset, size: p.size, drag: false }).catch(
-        console.error,
-      );
+      invoke("pin_pet", { id, offset: p.offset, size: p.size }).catch(console.error);
     });
     pinnedCreatures.forEach((creatureId, index) => {
       const id = selfPinId(creatureId);
       if (created.current.has(id)) return;
       created.current.add(id);
-      // Posée par glissement depuis « Ma collection » : la nouvelle fenêtre
-      // doit tout de suite suivre la souris (drag: true côté Rust, qui
-      // enchaîne sur start_dragging()) plutôt que réapparaître à une
-      // position mémorisée — sa taille/position réelle sera de toute façon
-      // écrasée par l'événement "pet-placed" une fois le glissement relâché.
-      const drag = takeDragPinId(creatureId);
-      const p = drag
-        ? { edge: "bottom" as const, offset: 0.5, size: DEFAULT_SIZE }
-        : getPlacement(id, pinned.length + index);
+      const p = getPlacement(id, pinned.length + index);
       savePlacement(id, p);
-      invoke("pin_pet", { id, edge: p.edge, offset: p.offset, size: p.size, drag }).catch(
-        console.error,
-      );
+      invoke("pin_pet", { id, offset: p.offset, size: p.size }).catch(console.error);
     });
 
     created.current.forEach((id) => {
@@ -353,6 +433,27 @@ function App() {
   useEffect(() => {
     invoke("pin_set_active", { label, active: pet.phase !== "HIDDEN" }).catch(console.error);
   }, [pet.phase, pinnedOnDesktop]);
+
+  // Un ami PAS épinglé vient d'écrire, mais MOI je suis visible à l'écran
+  // (voir self_pin_active côté Rust) : pas de pet à lui sur lequel afficher
+  // sa bulle, alors c'est la mienne qui la montre à sa place.
+  useEffect(() => {
+    const unsub = onLiveMessage((from, text) => {
+      invoke<boolean>("pin_is_active", { friendId: from })
+        .catch(() => false)
+        .then((friendPinVisible) => {
+          if (friendPinVisible) return; // son propre pet s'en charge déjà
+          window.clearTimeout(bubbleTimer.current);
+          setBubbleText(truncateBubble(text));
+          setBubblePhase("in");
+          bubbleTimer.current = window.setTimeout(() => setBubblePhase("out"), 4000);
+        });
+    });
+    return () => {
+      unsub();
+      window.clearTimeout(bubbleTimer.current);
+    };
+  }, []);
 
   // Prévient Rust des zones cliquables : le bouton, et le panneau s'il est ouvert.
   useEffect(() => {
@@ -462,10 +563,22 @@ function App() {
               />
             </div>
           </div>
+          {bubblePhase !== "hidden" && (
+            <span
+              className="pw-bubble"
+              data-phase={bubblePhase}
+              style={{ left: size / 2, top: bubbleTop }}
+              onAnimationEnd={(e) => {
+                if (e.animationName === "pw-bubble-out") setBubblePhase("hidden");
+              }}
+            >
+              {bubbleText}
+            </span>
+          )}
           <button
             className="pw-btn"
             style={{ left: size / 2 - BTN / 2, top: btnTop }}
-            aria-label="Ouvrir Eggs"
+            aria-label="Ouvrir Egg"
             onMouseDown={(e) => e.stopPropagation()}
             onClick={(e) => {
               e.stopPropagation();
@@ -477,12 +590,27 @@ function App() {
 
       <div className={`pw-panel ${open ? "open" : ""}`}>
         <div className="pw-panel-inner">
+          {/* Barre de titre façon fenêtre, demandée le 28/09/2026 sur la base
+              de la maquette "Messages". Ce n'est pas une vraie fenêtre système
+              (le panneau est ancré à la créature, toujours au-dessus, sans
+              entrée dans la barre des tâches — voir tauri.conf.json :
+              decorations/skipTaskbar) : réduire et fermer font donc la même
+              chose ici, replier le panneau (comme l'ancien bouton ✕ seul,
+              qu'elle remplace). */}
+          <div className="panel-titlebar">
+            <img className="panel-titlebar-logo" src={eggLogo} alt="Egg" />
+            <span className="panel-titlebar-actions">
+              <button className="panel-title-btn" onClick={closePanel} aria-label="Réduire" title="Réduire">
+                &#8211;
+              </button>
+              <button className="panel-title-btn close" onClick={closePanel} aria-label="Fermer" title="Fermer">
+                ✕
+              </button>
+            </span>
+          </div>
           <div className="pw-conv">
             <MainApp />
           </div>
-          <button className="panel-close" onClick={closePanel} aria-label="Fermer">
-            ✕
-          </button>
         </div>
       </div>
     </div>

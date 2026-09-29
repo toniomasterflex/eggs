@@ -7,14 +7,18 @@
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { invoke } from "@tauri-apps/api/core";
 
+export type Theme = "dark" | "light";
+
 export interface Settings {
   showGround: boolean; // afficher l'herbe sur la barre des tâches
   pinnedOnDesktop: boolean; // ma créature reste toujours affichée (ne repart jamais)
+  theme: Theme; // sombre (d'origine) ou clair "affiche jaune d'œuf" (demande d'Antoine du 29/09/2026)
 }
 
 export const DEFAULT_SETTINGS: Settings = {
   showGround: true,
   pinnedOnDesktop: false,
+  theme: "dark",
 };
 
 const STORAGE_KEY = "eggs.settings";
@@ -31,6 +35,7 @@ function load(): Settings {
           typeof saved.pinnedOnDesktop === "boolean"
             ? saved.pinnedOnDesktop
             : DEFAULT_SETTINGS.pinnedOnDesktop,
+        theme: saved.theme === "light" ? "light" : DEFAULT_SETTINGS.theme,
       };
     }
   } catch {
@@ -39,7 +44,25 @@ function load(): Settings {
   return DEFAULT_SETTINGS;
 }
 
+/**
+ * Pose data-theme sur <html> plutôt que sur un composant React précis :
+ * l'appli tourne dans plusieurs fenêtres Tauri (main/pets/ground/toast,
+ * voir main.tsx), chacune avec son propre document mais son propre import
+ * de ce module — ce simple appel au chargement (plus bas) et à chaque
+ * changement (apply()) suffit donc à couvrir toutes les fenêtres sans rien
+ * ajouter dans MainApp.tsx / GroundPet.tsx (voir ui.css : sélecteurs
+ * [data-theme="light"] .eggs-ui).
+ */
+function applyThemeAttribute(theme: Theme) {
+  try {
+    document.documentElement.setAttribute("data-theme", theme);
+  } catch {
+    // pas grave (ne devrait pas arriver dans une fenêtre Tauri)
+  }
+}
+
 let settings: Settings = load();
+applyThemeAttribute(settings.theme);
 const listeners = new Set<() => void>();
 
 function subscribe(listener: () => void) {
@@ -56,6 +79,7 @@ function apply(next: Settings) {
   } catch {
     // pas grave
   }
+  applyThemeAttribute(settings.theme);
   listeners.forEach((listener) => listener());
 }
 
@@ -82,6 +106,19 @@ export function setShowGround(on: boolean) {
  */
 export function setPinnedOnDesktop(on: boolean) {
   apply({ ...settings, pinnedOnDesktop: on });
+}
+
+/**
+ * Thème clair/sombre (demande d'Antoine du 29/09/2026, voir ui.css pour la
+ * planche complète du thème clair) — purement côté app comme
+ * pinnedOnDesktop ci-dessus, pas besoin de Rust : seul du CSS change.
+ */
+export function useTheme(): Theme {
+  return useSettings().theme;
+}
+
+export function setTheme(theme: Theme) {
+  apply({ ...settings, theme });
 }
 
 /**

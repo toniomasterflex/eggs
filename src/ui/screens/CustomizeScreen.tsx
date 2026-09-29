@@ -1,10 +1,10 @@
+import { useState } from "react";
 import type { MouseEvent as ReactMouseEvent } from "react";
 import PetPreview from "../../pet/PetPreview";
-import { MAX_PINNED_CREATURES, activateCreature, pinCreatureByDrag, useCollection } from "../../data/profile";
+import { activateCreature, pinCreatureByDrag, useCollection } from "../../data/profile";
 
 // Distance (en pixels écran) à partir de laquelle un appui devient un
-// glissement plutôt qu'un simple clic — même valeur que pour déplacer un pet
-// déjà épinglé (App.tsx / PinnedWindow.tsx : onPress).
+// glissement plutôt qu'un simple clic.
 const DRAG_THRESHOLD = 6;
 
 // « Ma collection » : toutes les créatures déjà écloses, en grille (3 par
@@ -14,35 +14,48 @@ const DRAG_THRESHOLD = 6;
 // l'adopte comme avatar actif. Pour les créatures non actives, on peut aussi
 // la GLISSER hors de cette fenêtre jusque sur le bureau : elle se pose sur
 // l'herbe et s'y balade toute seule, comme les pets d'amis épinglés (voir
-// pinCreatureByDrag : la nouvelle fenêtre suit tout de suite la souris,
-// pin_pet/drag côté Rust). Pour la ranger, un petit bouton apparaît
-// au-dessus d'elle une fois posée (PinnedWindow.tsx).
+// pinCreatureByDrag). Pour la ranger, un petit bouton apparaît au-dessus
+// d'elle une fois posée (pet/GroundPet.tsx).
+//
+// Jusqu'au 29/09/2026, franchir le seuil de glissement posait la créature
+// TOUT DE SUITE (elle avait alors sa propre fenêtre Windows, dont le
+// glissement natif prenait le relais de la souris pour de vrai — voir
+// l'historique de pin_pet côté Rust). Depuis la fenêtre partagée "pets", il
+// n'y a plus de fenêtre à faire apparaître sous le curseur : la créature se
+// pose désormais au RELÂCHEMENT de la souris (toujours après avoir franchi
+// le même seuil, pour ne pas confondre avec un simple clic), directement à
+// une position mémorisée ou espacée par défaut, comme un ami épinglé.
 export default function CustomizeScreen({ onBack }: { onBack: () => void }) {
   const { creatures, loaded, pinnedCreatures = [] } = useCollection();
-  const limitReached = pinnedCreatures.length >= MAX_PINNED_CREATURES;
+  // Créature actuellement glissée (voir onPress) : juste un retour visuel
+  // (la carte s'estompe) pendant le geste, rien de plus.
+  const [draggingId, setDraggingId] = useState<string | null>(null);
 
   const pick = (id: string, active: boolean) => {
     if (!active) activateCreature(id).catch(() => {});
   };
 
-  // Appui sur une créature non active : si la souris s'éloigne assez avant
-  // d'être relâchée, on la pose sur le bureau au lieu de l'adopter (le clic
-  // normal, lui, passe par l'onClick habituel du bouton).
   const onPress = (e: ReactMouseEvent, id: string) => {
     if (e.button !== 0) return;
     const sx = e.screenX;
     const sy = e.screenY;
+    let dragging = false;
     const stop = () => {
       window.removeEventListener("mousemove", onMove);
-      window.removeEventListener("mouseup", stop);
+      window.removeEventListener("mouseup", onUp);
     };
     const onMove = (m: MouseEvent) => {
-      if (Math.hypot(m.screenX - sx, m.screenY - sy) < DRAG_THRESHOLD) return;
+      if (dragging || Math.hypot(m.screenX - sx, m.screenY - sy) < DRAG_THRESHOLD) return;
+      dragging = true;
+      setDraggingId(id);
+    };
+    const onUp = () => {
       stop();
-      pinCreatureByDrag(id);
+      setDraggingId(null);
+      if (dragging) pinCreatureByDrag(id);
     };
     window.addEventListener("mousemove", onMove);
-    window.addEventListener("mouseup", stop);
+    window.addEventListener("mouseup", onUp);
   };
 
   return (
@@ -68,7 +81,10 @@ export default function CustomizeScreen({ onBack }: { onBack: () => void }) {
           {creatures.map((c) => {
             const isPinned = pinnedCreatures.includes(c.id);
             return (
-              <div key={c.id} className={`collection-grid-item${c.active ? " active" : ""}`}>
+              <div
+                key={c.id}
+                className={`collection-grid-item${c.active ? " active" : ""}${draggingId === c.id ? " dragging" : ""}`}
+              >
                 <button
                   className="collection-pick"
                   onMouseDown={(e) => !c.active && onPress(e, c.id)}
@@ -79,9 +95,7 @@ export default function CustomizeScreen({ onBack }: { onBack: () => void }) {
                       ? "Créature active"
                       : isPinned
                         ? "Déjà posée sur l'herbe"
-                        : limitReached
-                          ? "Maximum de créatures posées atteint"
-                          : "Cliquer pour adopter, ou glisser hors de la fenêtre pour la poser sur l'herbe"
+                        : "Cliquer pour adopter, ou glisser hors de la fenêtre pour la poser sur l'herbe"
                   }
                 >
                   <PetPreview scale={0.42} species={c.species} color={c.color} />

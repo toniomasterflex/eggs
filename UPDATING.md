@@ -48,15 +48,21 @@ voici comment vérifier qu'elle vient bien de toi » (grâce à une signature).
    - remplace `REMPLACE_MOI_PAR_TA_CLE_PUBLIQUE` par la clé publique copiée
      à l'étape 2.
 
-4. **Premier build signé.** Avant `cargo tauri build`, il faut que la clé
+4. **Premier build signé.** Avant `npm run tauri build`, il faut que la clé
    privée soit accessible via deux variables d'environnement (elles ne sont
    utiles qu'au moment du build, pas ensuite) :
 
    ```powershell
    $env:TAURI_SIGNING_PRIVATE_KEY = Get-Content "$env:USERPROFILE\.tauri\eggs.key" -Raw
    $env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD = "le mot de passe choisi à l'étape 2"
-   cargo tauri build
+   npm run tauri build
    ```
+
+   (`npm run tauri build` plutôt que `cargo tauri build` : ce poste n'a pas
+   l'outil Tauri installé globalement pour Cargo, mais il est déjà présent
+   via npm — voir `package.json`, script `tauri`. Les deux font exactement
+   la même chose ; si `cargo tauri build` fonctionne un jour chez toi, les
+   deux formes restent interchangeables.)
 
    En plus de l'installeur habituel, ça produit maintenant un fichier
    `.exe.sig` à côté (dans `src-tauri\target\release\bundle\nsis\`).
@@ -86,7 +92,7 @@ voici comment vérifier qu'elle vient bien de toi » (grâce à une signature).
    dans le même terminal PowerShell — si tu en ouvres un nouveau, refais
    les deux lignes `$env:...`) :
    ```powershell
-   cargo tauri build
+   npm run tauri build
    ```
 3. `node scripts/make-latest-json.mjs "ce qui a changé, en une phrase"`
 4. Nouvelle release GitHub, tag `vX.Y.Z` correspondant, avec les 3 mêmes
@@ -105,7 +111,7 @@ toi, par exemple) — pas urgent tant que ce n'est que vous deux.
 
 ## En cas de souci
 
-- **`cargo tauri build` n'affiche pas d'erreur mais il n'y a pas de
+- **`npm run tauri build` n'affiche pas d'erreur mais il n'y a pas de
   `.exe.sig`** : `TAURI_SIGNING_PRIVATE_KEY` n'était probablement pas défini
   dans CE terminal avant la commande (voir étape 1.4/2.2).
 - **L'appli ne se met jamais à jour toute seule** : vérifie que la release

@@ -159,9 +159,8 @@ export default function HatchScreen() {
   const giftingFriend = friends.length > 0;
 
   return (
-    <section className="screen">
+    <section className="screen screen-tab">
       <span className="screen-eyebrow">Collection</span>
-      <h1>Œufs</h1>
 
       {eggs.length === 0 && <p className="hatch-empty">Rien à couver pour l'instant. Reviens lundi prochain !</p>}
 

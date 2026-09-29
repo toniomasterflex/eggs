@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Eggs",
-  "mainBinaryName": "Eggs",
-  "version": "0.1.0",
+  "productName": "Egg",
+  "mainBinaryName": "Egg",
+  "version": "0.2.1",
   "identifier": "com.antoi.eggs",
   "build": {
     "beforeDevCommand": "npm run dev",
@@ -14,7 +14,7 @@
     "windows": [
       {
         "label": "main",
-        "title": "Eggs",
+        "title": "Egg",
         "width": 800,
         "height": 800,
         "decorations": false,
@@ -45,9 +45,14 @@
   "plugins": {
     "updater": {
       "endpoints": [
-        "https://github.com/REMPLACE_MOI/eggs/releases/latest/download/latest.json"
+        "https://github.com/toniomasterflex/eggs/releases/latest/download/latest.json"
       ],
-      "pubkey": "REMPLACE_MOI_PAR_TA_CLE_PUBLIQUE"
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEQ0NENGQThBQzY4M0M5MApSV1NRUEdpc3FNOUVEZThxZ2dXVW1TbUhjZ1dQdUpNVDc3MjJTbnFEVU1lRTA4eUNJdVM4d0Q2VAo="
+    },
+    "deep-link": {
+      "desktop": {
+        "schemes": ["eggs"]
+      }
     }
   }
 }

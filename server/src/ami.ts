@@ -42,7 +42,10 @@ async function api(method: string, path: string, body?: unknown, token?: string)
 
 let r = await api("POST", "/auth/login", { username: name, password: PASSWORD });
 if (r.status !== 200) {
-  r = await api("POST", "/auth/register", { username: name, password: PASSWORD });
+  // Email désormais demandé à l'inscription (voir index.ts) — un faux
+  // suffit ici, ce compte de test n'a pas vocation à en recevoir.
+  const email = `${name.toLowerCase().replace(/[^a-z0-9]/g, "") || "ami"}-test-2026@example.com`;
+  r = await api("POST", "/auth/register", { username: name, email, password: PASSWORD });
   if (r.status !== 200 && r.status !== 201) {
     console.log("Impossible de créer/connecter l'ami :", r.data);
     process.exit(1);

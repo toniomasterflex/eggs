@@ -1,25 +1,216 @@
+/* Typo de l'appli, changée le 30/09/2026 pour suivre la charte graphique
+   fournie par Antoine (une seule famille partout, plus douce/ronde que
+   l'ancien duo Exo 2 + Orbitron façon HUD arcade du 30/09 matin — la
+   charte est passée par là entre-temps) : Plus Jakarta Sans, en SIL Open
+   Font License (libre, y compris commercial). Fichier auto-hébergé (voir
+   src/assets/fonts/, extrait du paquet npm @fontsource/plus-jakarta-sans —
+   licence copiée dans LICENSE-plusjakartasans.txt à côté) plutôt que
+   chargé depuis Google Fonts : l'appli doit marcher hors ligne. Les titres
+   d'écran (.screen h1 / .screen-eyebrow) utilisaient Orbitron avant ; ils
+   reprennent maintenant la même famille, juste en gras + capitales pour
+   rester distincts du texte courant. */
+@font-face {
+  font-family: "Plus Jakarta Sans";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("../assets/fonts/plusjakartasans-400.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Plus Jakarta Sans";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("../assets/fonts/plusjakartasans-500.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Plus Jakarta Sans";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("../assets/fonts/plusjakartasans-600.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Plus Jakarta Sans";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("../assets/fonts/plusjakartasans-700.woff2") format("woff2");
+}
+
 .eggs-ui {
+  /* ============================================================
+     THÈME CLAIR/SOMBRE — demande d'Antoine du 29/09/2026 : garder le
+     thème sombre d'origine tel quel, et ajouter à côté le thème clair
+     "affiche jaune d'œuf" fourni par Antoine (planche complète plus bas),
+     avec bascule possible entre les deux (interrupteur "Thème clair"
+     dans Réglages, voir data/settings.ts / SettingsScreen.tsx qui pose
+     l'attribut data-theme="light" sur .eggs-ui — sans attribut, ou avec
+     data-theme="dark", on reste sur le thème sombre ci-dessous).
+
+     --accent (le jaune d'œuf #FFB200, choisi par Antoine le 29/09/2026
+     après plusieurs essais — voir l'historique de ce fichier) est une
+     couleur de marque FIXE, volontairement identique dans les deux
+     thèmes ; pareil pour toute la planche "chaud / naturel / froid"
+     ci-dessous (--color-orange, --color-sage, etc.) : ce sont des
+     couleurs de marque, pas des jetons qui doivent changer avec le
+     thème. Seuls fond, texte, surfaces et couleurs d'état (jetons
+     déclarés juste après) changent selon data-theme. */
+  --accent: #ffb200;
+  --accent-rgb: 255, 178, 0;
+  --accent-2: #ffd166;
+
+  --color-primary: var(--accent);
+  --color-primary-hover: #e9a200;
+  --color-primary-active: #cc8e00;
+  --color-primary-light: var(--accent-2);
+  --color-primary-soft: #fff0c2;
+  --color-primary-pale: #fff7e3;
+
+  --color-orange: #f28c28;
+  --color-terracotta: #e76f51;
+  --color-coral: #d98c8c;
+  --color-sand: #d9b77a;
+  --color-clay: #b9825a;
+  --color-sage: #8faf9a;
+  --color-olive: #7f8f52;
+  --color-moss: #65734a;
+  --color-blue: #6fa8a8;
+  --color-sky: #8db8c7;
+  --color-indigo: #5e6fae;
+  --color-lavender: #8173a7;
+
+  /* ---- Jetons de thème (valeurs par défaut = thème sombre) ---- */
+  color-scheme: dark;
   --bg: #15151b;
   --text: #eeeef2;
   --muted: #8b8b98;
-  --accent: #ffd84d;
+  --text-secondary: #c7c7ce;
+  /* Texte posé sur un fond --accent plein (boutons, badges) : blanc en
+     sombre (comportement inchangé), brun encre en clair — voir plus bas,
+     --accent lui-même ne change pas de teinte entre les deux thèmes. */
+  --text-on-accent: #fff;
   --line: rgba(255, 255, 255, 0.06);
+  /* "Encre" de contraste utilisée pour les surfaces/icônes translucides
+     (rgba(var(--overlay-rgb), X) — remplace tous les rgba(255,255,255,X)
+     du fichier) : blanc sur fond sombre, brun encre sur fond clair, pour
+     qu'une seule règle s'adapte aux deux thèmes. */
+  --overlay-rgb: 255, 255, 255;
+  --color-surface: #1c1c22;
+  --color-surface-warm: #201e29;
+  --color-surface-hover: #26262e;
+  --color-surface-accent-tint: #3a1a28;
+  --input-autofill-bg: #23232c;
+  --bg-vignette-1: #202029;
+  --bg-vignette-2: #17171d;
+  --bg-vignette-3: #101014;
+  --status-online: #8fe3b0;
+  --status-online-rgb: 143, 227, 176;
+  --status-away: #f5a623;
+  --status-away-rgb: 245, 166, 35;
+  --status-offline: #ff6b6b;
+  --status-offline-rgb: 255, 107, 107;
+  --danger: #ff8a80;
+  --danger-rgb: 255, 138, 128;
+  --danger-text: #ffb3b3;
+  --color-overlay: rgba(0, 0, 0, 0.35);
+  --color-overlay-light: rgba(255, 255, 255, 0.08);
+  /* Alias sous les noms exacts de la planche d'Antoine, pour qu'on
+     puisse directement s'en servir dans du CSS à venir. */
+  --color-background: var(--bg);
+  --color-border: var(--line);
+  --color-text: var(--text);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-muted: var(--muted);
+  --color-text-on-primary: var(--text-on-accent);
+  --color-success: var(--status-online);
+  --color-warning: var(--status-away);
+  --color-error: var(--status-offline);
+  --color-info: #668fa3;
 
-  color-scheme: dark;
+  /* "Dezoom" général de l'appli (demande d'Antoine, 21/09/2026) : tout
+     paraissait un peu trop gros dans le petit panneau du chat (250×400px,
+     voir PW/PH dans App.tsx/GroundPet.tsx). Plutôt que de retoucher une par
+     une les centaines de tailles en dur de ce fichier, un zoom global sur
+     CETTE racine (police, espacements, avatars, tout suit) réduit l'ensemble
+     uniformément sans toucher à la mise en page ni aux dimensions du
+     panneau côté Rust (pin_set_ui).
+     width/height restent à 100% (PAS de calc(100% / 0.85) ici, malgré ce
+     qu'on pourrait croire) : ce pourcentage se résout contre le panneau
+     parent, NON zoomé, donc `zoom` seul suffit déjà à réduire tout le
+     contenu à l'intérieur sans agrandir la boîte elle-même — vérifié dans
+     Chromium : avec juste `zoom: 0.85`, .eggs-ui mesure toujours 250×400px
+     de l'extérieur, mais son contenu (polices, tabbar...) est rendu à 85 %.
+     Ajouter `calc(100% / 0.85)` (erreur du premier essai) fait au contraire
+     grossir la boîte elle-même à ~294×470px, qui déborde alors du panneau
+     (overflow: hidden côté .pw-panel) : la barre d'onglets en bas se
+     retrouve hors-cadre, coupée, et le reste dépasse à droite/en bas — exactement
+     le bug remonté par Antoine. */
+  zoom: 0.85;
   width: 100%;
   height: 100%;
   display: flex;
   flex-direction: column;
   background: var(--bg);
   color: var(--text);
-  font-family: "Segoe UI", system-ui, sans-serif;
+  font-family: "Plus Jakarta Sans", "Segoe UI", system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   user-select: none;
+}
+
+/* Thème clair "affiche jaune d'œuf" — planche fournie par Antoine le
+   29/09/2026. Activé en posant data-theme="light" sur <html> (voir
+   data/settings.ts : setTheme()/useTheme(), et le réglage "Thème clair"
+   dans Réglages) — sur <html> et pas sur .eggs-ui directement, car
+   l'appli tourne dans plusieurs fenêtres Tauri distinctes (main/pets/...,
+   voir main.tsx) qui n'ont pas toutes un composant React commun pour
+   poser l'attribut : un seul effet, au niveau du document, couvre tout
+   le monde d'un coup. Ne redéclare que ce qui change réellement par
+   rapport au thème sombre ci-dessus (fond, texte, surfaces, états) ;
+   --accent et toute la planche de couleurs de marque restent les mêmes. */
+[data-theme="light"] .eggs-ui {
+  color-scheme: light;
+  --bg: #fff8e8;
+  --text: #332b20;
+  --muted: #9b9182;
+  --text-secondary: #716758;
+  --text-on-accent: #2e250f;
+  --line: #e9dfc9;
+  --overlay-rgb: 51, 43, 32;
+  --color-surface: #fffdf7;
+  --color-surface-warm: #fff4d6;
+  --color-surface-hover: #f8eed8;
+  --color-surface-accent-tint: var(--color-primary-soft);
+  --input-autofill-bg: #f1eada;
+  --bg-vignette-1: var(--color-surface);
+  --bg-vignette-2: var(--color-background);
+  --bg-vignette-3: var(--color-primary-soft);
+  --status-online: #71966f;
+  --status-online-rgb: 113, 150, 111;
+  --status-away: #d99a24;
+  --status-away-rgb: 217, 154, 36;
+  --status-offline: #c9675c;
+  --status-offline-rgb: 201, 103, 92;
+  --danger: #c9675c;
+  --danger-rgb: 201, 103, 92;
+  --danger-text: #7a362c;
+  --color-overlay: rgba(51, 43, 32, 0.35);
+  --color-overlay-light: rgba(51, 43, 32, 0.08);
 }
 
 .eggs-ui .content {
   flex: 1;
   overflow-y: auto;
+  /* Répertoire (Tous vs Favoris, moins d'amis donc souvent pas besoin de
+     défiler) — retour d'Antoine du 29/09/2026 : toute la page "s'allonge/
+     rétrécit" en changeant d'onglet. Cause : sans ceci, la barre de
+     défilement (voir ::-webkit-scrollbar plus bas) prend de la place en
+     largeur seulement quand le contenu déborde, donc TOUT ce qui est en
+     flex:1/100% à l'intérieur (lignes, barre Tous/Favoris, etc.) se
+     redimensionne d'autant selon qu'il y a assez d'amis pour défiler ou
+     non. scrollbar-gutter réserve cette place en permanence, que la barre
+     soit visible ou pas, pour que rien ne bouge en changeant d'onglet. */
+  scrollbar-gutter: stable;
 }
 
 /* ---------- Écrans ---------- */
@@ -28,25 +219,48 @@
   padding: 18px 16px;
 }
 
+/* Titres d'écran (voir le commentaire en haut du fichier) — même famille
+   que le texte courant depuis la charte du 30/09/2026 (Orbitron abandonné),
+   distingués par le gras + les capitales seulement. */
 .eggs-ui .screen h1 {
   margin: 0 0 16px;
-  font-size: 21px;
+  font-family: "Plus Jakarta Sans", sans-serif;
+  font-size: 20px;
   font-weight: 700;
-  letter-spacing: 0.1px;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
 }
 
 /* Petit label en capitales juste au-dessus du titre (la catégorie), pour un
    titre d'écran plus soigné. Simple élément voisin du h1 — pas de wrapper
-   nécessaire. */
+   nécessaire. Même famille que le h1 pour rester cohérent. */
 .eggs-ui .screen-eyebrow {
   display: block;
   margin: 0 0 3px;
+  font-family: "Plus Jakarta Sans", sans-serif;
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 1.8px;
   text-transform: uppercase;
   color: var(--accent);
   opacity: 0.8;
+}
+
+/* Onglets principaux (Chats/Répertoire/Œufs/Profil) : demande d'Antoine du
+   30/09/2026, le <h1> blanc en capitales (CHATS/RÉPERTOIRE/ŒUFS/PROFIL)
+   faisait doublon avec les libellés déjà visibles dans la barre du bas
+   (.tabbar) — supprimé de ces 4 écrans (voir ChatsScreen/DirectoryScreen/
+   HatchScreen/ProfileScreen.tsx), le petit eyebrow coloré suffit comme
+   repère. Cette classe remonte le contenu pour reprendre l'espace libéré :
+   moins de marge au-dessus, et l'eyebrow garde assez d'air en dessous pour
+   ne pas coller directement à la suite (liste, carrousel, grille d'œufs...).
+   Scopé à ces 4 écrans seulement (pas .screen tout court) pour ne pas
+   toucher Login/Shop, qui gardent leur propre h1 et leur propre espacement. */
+.eggs-ui .screen-tab {
+  padding-top: 12px;
+}
+.eggs-ui .screen-tab .screen-eyebrow {
+  margin-bottom: 12px;
 }
 
 .eggs-ui .placeholder {
@@ -72,44 +286,60 @@
   align-items: center;
   gap: 2px;
   padding: 6px 0 5px;
+  margin: 0 1px;
   border: 0;
-  border-radius: 10px;
+  border-radius: 14px;
   background: none;
   color: var(--muted);
   font-family: inherit;
   font-size: 10px;
+  font-weight: 600;
   cursor: pointer;
-  transition: background 0.2s, color 0.2s;
+  transition: background 0.2s, color 0.2s, box-shadow 0.2s;
 }
 
 .eggs-ui .tab .icon {
   position: relative;
-  font-size: 15px;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Icônes "verre sombre" fournies par Antoine (29/09/2026), à la place des
+   emojis d'origine — voir MainApp.tsx. Même logique qu'avant : grisées et
+   estompées au repos, pleine couleur sur l'onglet actif. */
+.eggs-ui .tab .icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
   filter: grayscale(1) opacity(0.55);
   transition: filter 0.2s;
 }
 
 .eggs-ui .tab-badge {
   position: absolute;
-  top: -2px;
-  right: -5px;
+  top: -1px;
+  right: -2px;
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: #ff6b6b;
+  background: var(--status-offline);
   box-shadow: 0 0 0 1.5px var(--bg);
 }
 
 .eggs-ui .tab:hover {
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(var(--overlay-rgb), 0.04);
 }
 
 .eggs-ui .tab.active {
-  color: var(--accent);
-  background: rgba(255, 216, 77, 0.08);
+  color: var(--text-on-accent);
+  background: linear-gradient(135deg, var(--accent-2), var(--accent));
+  box-shadow: 0 3px 10px rgba(var(--accent-rgb), 0.35);
 }
 
-.eggs-ui .tab.active .icon {
+.eggs-ui .tab.active .icon img {
   filter: none;
 }
 /* ================= Étape 2 : Chats et conversations ================= */
@@ -128,7 +358,7 @@
   width: 6px;
 }
 .eggs-ui ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(var(--overlay-rgb), 0.1);
   border-radius: 3px;
 }
 
@@ -144,7 +374,7 @@
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
 }
 
 .eggs-ui .chat-row {
@@ -152,10 +382,10 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 8px 10px;
+  padding: 9px 11px;
   border: 0;
-  border-radius: 12px;
-  background: none;
+  border-radius: 14px;
+  background: rgba(var(--overlay-rgb), 0.035);
   color: var(--text);
   font-family: inherit;
   font-size: 14px;
@@ -165,11 +395,94 @@
 }
 
 .eggs-ui .chat-row:hover {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(var(--overlay-rgb), 0.075);
 }
 
 .eggs-ui .chat-name {
   flex: 1;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13.5px;
+  font-weight: 700;
+}
+
+/* Nom + sous-titre empilés (dernière activité pour un chat, présence pour
+   un salon) — même esprit que .dir-names, réutilisé ici sous un autre nom
+   pour rester lisible dans ChatsScreen.tsx / SalonsScreen.tsx. Cohérence
+   visuelle avec la planche de référence du 28/09/2026 (cartes de salons et
+   de discussions, panneau 10). Les salons de la liste (ChatsScreen.tsx,
+   SalonFlatList) réutilisent directement .chat-name/.chat-subtitle depuis
+   le 29/09/2026 — voir plus bas (.salon-row-card & co, retirés) pour
+   pourquoi il n'y a plus de classe .salon-subtitle séparée. */
+.eggs-ui .chat-names,
+.eggs-ui .dir-names {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  align-items: flex-start;
+}
+.eggs-ui .chat-subtitle {
+  font-size: 10px;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+/* "En vocal" : un appel est en cours dans ce salon, visible dans la liste
+   sans avoir à l'ouvrir (voir server/src/calls.ts : whoIsInCall, et
+   l'évènement temps réel "salon-call-status" ajouté le 28/09/2026 pour ça —
+   distinct de "salon-presence", qui ne dit que qui discute par écrit). */
+.eggs-ui .salon-call-tag {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+/* Pastille de statut (en ligne / absent / hors ligne) — voir
+   DirectoryScreen.tsx, ChatsScreen.tsx (amis) et SalonsScreen.tsx (salons).
+   Trois états, façon Slack/Discord (demande d'Antoine du 21/09/2026) :
+   vert = en ligne et actif, orange = en ligne mais passé "absent" à la main
+   (voir data/session.ts : setMyAwayStatus), rouge = pas connecté du tout.
+   Même langage que .presence-dot/.row-status-dot ci-dessous (mêmes couleurs). */
+.eggs-ui .status-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10.5px;
+  color: var(--muted);
+}
+.eggs-ui .status-dot {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(var(--overlay-rgb), 0.25);
+}
+.eggs-ui .status-tag.online {
+  color: var(--status-online);
+}
+.eggs-ui .status-tag.online .status-dot {
+  background: var(--status-online);
+  box-shadow: 0 0 0 2px rgba(var(--status-online-rgb), 0.18);
+}
+.eggs-ui .status-tag.away {
+  color: var(--status-away);
+}
+.eggs-ui .status-tag.away .status-dot {
+  background: var(--status-away);
+  box-shadow: 0 0 0 2px rgba(var(--status-away-rgb), 0.18);
+}
+.eggs-ui .status-tag.offline {
+  color: var(--status-offline);
+}
+.eggs-ui .status-tag.offline .status-dot {
+  background: var(--status-offline);
+  box-shadow: 0 0 0 2px rgba(var(--status-offline-rgb), 0.18);
 }
 
 .eggs-ui .unread-dot {
@@ -191,8 +504,9 @@
 .eggs-ui .conv-header {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 12px 40px 8px 8px;
+  gap: 8px;
+  padding: 12px 40px 10px 8px;
+  border-bottom: 1px solid var(--line);
 }
 
 .eggs-ui .back {
@@ -209,7 +523,7 @@
 }
 
 .eggs-ui .back:hover {
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(var(--overlay-rgb), 0.06);
   color: var(--text);
 }
 
@@ -234,31 +548,176 @@
 }
 
 .eggs-ui .bubble {
-  max-width: 82%;
-  padding: 6px 10px;
-  border-radius: 14px;
+  /* La largeur max vient maintenant de .msg-row (voir plus bas, ajouté pour
+     les réactions) : ce wrapper contient la bulle ET ses pastilles, le
+     plafond de 82 % doit s'appliquer une seule fois, pas aux deux. */
+  max-width: 100%;
+  padding: 7px 12px;
+  border-radius: 17px;
   font-size: 12.5px;
-  line-height: 1.35;
+  line-height: 1.4;
   word-break: break-word;
   user-select: text;
 }
 
 .eggs-ui .bubble.theirs {
-  align-self: flex-start;
-  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(var(--overlay-rgb), 0.06);
   border-bottom-left-radius: 5px;
 }
 
 .eggs-ui .bubble.mine {
-  align-self: flex-end;
-  background: rgba(255, 216, 77, 0.18);
   border-bottom-right-radius: 5px;
 }
 
+/* Réactions façon iMessage/WhatsApp (voir ConversationScreen.tsx) : chaque
+   message est maintenant un .msg-row (bulle + pastilles de réaction), qui a
+   remplacé .bubble comme enfant direct de .messages — c'est donc lui qui
+   porte align-self et le plafond de largeur désormais. */
+.eggs-ui .msg-row {
+  display: flex;
+  flex-direction: column;
+  max-width: 82%;
+}
+.eggs-ui .msg-row.theirs {
+  align-self: flex-start;
+  align-items: flex-start;
+}
+.eggs-ui .msg-row.mine {
+  align-self: flex-end;
+  align-items: flex-end;
+}
+/* Le badge de réaction déborde sous la bulle (voir .reaction-pills plus bas) :
+   un peu de marge en plus pour ne pas le faire toucher le message suivant. */
+.eggs-ui .msg-row.has-reactions {
+  margin-bottom: 8px;
+}
+
+.eggs-ui .bubble-wrap {
+  position: relative;
+  display: inline-block;
+  max-width: 100%;
+}
+
+/* Petit bouton « réagir », caché jusqu'au survol (ou tant que la rangée
+   d'emojis est ouverte, voir picker-open ci-dessous posé par React). */
+.eggs-ui .react-trigger {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 20px;
+  height: 20px;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(var(--overlay-rgb), 0.1);
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.12s, background 0.15s, color 0.15s;
+}
+.eggs-ui .react-trigger:hover {
+  background: rgba(var(--accent-rgb), 0.2);
+  color: var(--accent);
+}
+.eggs-ui .bubble-wrap:hover .react-trigger,
+.eggs-ui .bubble-wrap.picker-open .react-trigger {
+  opacity: 1;
+}
+.eggs-ui .msg-row.theirs .react-trigger {
+  right: -26px;
+}
+.eggs-ui .msg-row.mine .react-trigger {
+  left: -26px;
+}
+
+.eggs-ui .reaction-picker {
+  position: absolute;
+  bottom: 100%;
+  margin-bottom: 6px;
+  display: flex;
+  gap: 1px;
+  padding: 4px;
+  border-radius: 999px;
+  background: var(--color-surface);
+  border: 1px solid rgba(var(--overlay-rgb), 0.07);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
+  z-index: 5;
+}
+.eggs-ui .msg-row.theirs .reaction-picker {
+  left: 0;
+}
+.eggs-ui .msg-row.mine .reaction-picker {
+  right: 0;
+}
+
+.eggs-ui .reaction-picker button {
+  width: 24px;
+  height: 24px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  transition: transform 0.1s, background 0.1s;
+}
+.eggs-ui .reaction-picker button:hover {
+  background: rgba(var(--overlay-rgb), 0.12);
+  transform: scale(1.15);
+}
+
+/* Badge en chevauchement du coin bas de la bulle, façon WhatsApp/iMessage
+   (voir ConversationScreen.tsx : .reaction-pills est maintenant DANS
+   .bubble-wrap, pas une rangée séparée en dessous). L'anneau (box-shadow
+   avec la couleur de fond) le détache visuellement de la bulle en dessous. */
+.eggs-ui .reaction-pills {
+  position: absolute;
+  bottom: -9px;
+  display: flex;
+  gap: 2px;
+  z-index: 2;
+}
+.eggs-ui .msg-row.theirs .reaction-pills {
+  right: -4px;
+}
+.eggs-ui .msg-row.mine .reaction-pills {
+  left: -4px;
+}
+.eggs-ui .reaction-pill {
+  border: 0;
+  border-radius: 999px;
+  padding: 1px 6px;
+  background: var(--color-surface-hover);
+  color: var(--text);
+  font-size: 11px;
+  line-height: 1.6;
+  cursor: pointer;
+  box-shadow: 0 0 0 2px var(--bg), 0 2px 6px rgba(0, 0, 0, 0.35);
+}
+.eggs-ui .reaction-pill.mine {
+  background: var(--color-surface-accent-tint);
+  box-shadow: 0 0 0 2px var(--bg), inset 0 0 0 1px rgba(var(--accent-rgb), 0.6);
+}
+
+/* Barre de saisie : un seul conteneur carte (fond + bordure) qui englobe le
+   champ et le bouton d'envoi/micro, plutôt qu'un champ flottant à part —
+   cohérence avec la planche de référence (panneau 09, 28/09/2026). */
 .eggs-ui .composer {
   display: flex;
+  align-items: center;
   gap: 6px;
-  padding: 8px 10px 10px;
+  margin: 0 10px 10px;
+  padding: 4px 4px 4px 14px;
+  border-radius: 999px;
+  background: rgba(var(--overlay-rgb), 0.045);
+  border: 1px solid rgba(var(--overlay-rgb), 0.07);
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.eggs-ui .composer:focus-within {
+  border-color: rgba(var(--accent-rgb), 0.45);
+  background: rgba(var(--overlay-rgb), 0.06);
 }
 
 .eggs-ui .composer input {
@@ -266,9 +725,8 @@
   min-width: 0;
   border: 0;
   outline: 0;
-  border-radius: 16px;
-  padding: 7px 12px;
-  background: rgba(255, 255, 255, 0.07);
+  padding: 8px 0;
+  background: none;
   color: var(--text);
   font-family: inherit;
   font-size: 12.5px;
@@ -285,12 +743,127 @@
   padding: 0;
   border: 0;
   border-radius: 50%;
-  background: var(--accent);
-  color: #15151b;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(135deg, var(--accent-2), var(--accent));
+  color: var(--text-on-accent);
   font-size: 14px;
   font-weight: 700;
   cursor: pointer;
 }
+
+/* Photo / vidéo / son (glisser-déposer ou coller, voir ConversationScreen.tsx) */
+
+.eggs-ui .conversation.drag-over .messages {
+  outline: 2px dashed var(--accent);
+  outline-offset: -6px;
+  border-radius: 10px;
+}
+
+.eggs-ui .drop-hint {
+  margin: 0 12px 6px;
+  padding: 6px 10px;
+  border-radius: 10px;
+  background: rgba(var(--accent-rgb), 0.12);
+  color: var(--accent);
+  font-size: 11.5px;
+  text-align: center;
+}
+
+.eggs-ui .attach-error {
+  margin: 0 12px 6px;
+  padding: 6px 10px;
+  border-radius: 10px;
+  background: rgba(var(--danger-rgb), 0.14);
+  color: var(--danger-text);
+  font-size: 11.5px;
+  text-align: center;
+}
+
+/* Petit texte d'aide neutre (ex. CreateGroupScreen : suggérer le chat direct
+   plutôt qu'un groupe à 2 personnes). */
+.eggs-ui .hint {
+  margin: 0 12px 6px;
+  padding: 6px 10px;
+  border-radius: 10px;
+  background: rgba(var(--overlay-rgb), 0.06);
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.4;
+  text-align: center;
+}
+
+/* Bouton micro (message vocal) : même rond que le bouton d'envoi, juste un
+   symbole différent (voir ConversationScreen.tsx : affiché à la place du
+   bouton d'envoi quand le champ texte est vide). */
+.eggs-ui .composer button.mic-btn {
+  font-size: 12px;
+}
+
+/* Barre affichée pendant l'enregistrement, à la place du champ texte
+   (voir ConversationScreen.tsx : recording-bar). */
+.eggs-ui .recording-bar {
+  align-items: center;
+}
+
+.eggs-ui .record-dot {
+  flex: none;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--danger);
+  animation: record-pulse 1s ease-in-out infinite;
+}
+
+@keyframes record-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.8); }
+}
+
+.eggs-ui .record-time {
+  flex: 1;
+  min-width: 0;
+  color: var(--text);
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.eggs-ui .composer button.record-cancel {
+  background: rgba(var(--overlay-rgb), 0.1);
+  color: var(--muted);
+  box-shadow: none;
+}
+.eggs-ui .composer button.record-cancel:hover {
+  box-shadow: none;
+  background: rgba(var(--overlay-rgb), 0.16);
+}
+
+.eggs-ui .bubble.bubble-media {
+  padding: 4px;
+  background: transparent;
+}
+.eggs-ui .bubble.bubble-media.theirs,
+.eggs-ui .bubble.bubble-media.mine {
+  background: rgba(var(--overlay-rgb), 0.05);
+}
+
+.eggs-ui .msg-media {
+  display: block;
+  max-width: 220px;
+  max-height: 220px;
+  border-radius: 11px;
+}
+
+img.msg-media {
+  cursor: pointer;
+  object-fit: cover;
+}
+
+.eggs-ui .msg-media-audio {
+  width: 220px;
+  height: 32px;
+}
+
 /* ================= Étape 3 : Répertoire et ajout d'ami ================= */
 
 .eggs-ui .chat-row {
@@ -309,7 +882,7 @@
   margin-top: 14px;
   width: 100%;
   padding: 9px 10px;
-  border: 1px dashed rgba(255, 255, 255, 0.14);
+  border: 1px dashed rgba(var(--overlay-rgb), 0.14);
   border-radius: 12px;
   background: none;
   color: var(--muted);
@@ -321,8 +894,8 @@
 
 .eggs-ui .add-btn:hover {
   color: var(--accent);
-  border-color: rgba(255, 216, 77, 0.4);
-  background: rgba(255, 216, 77, 0.05);
+  border-color: rgba(var(--accent-rgb), 0.4);
+  background: rgba(var(--accent-rgb), 0.05);
 }
 
 /* ---------- Shop ---------- */
@@ -335,6 +908,17 @@
 
 .eggs-ui .shop-head h1 {
   margin-bottom: 4px;
+}
+
+/* Bouton retour quand le Shop est ouvert depuis le Profil (voir ShopScreen.tsx
+   : prop onBack) plutôt que comme onglet séparé. */
+.eggs-ui .shop-head-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.eggs-ui .shop-head-row .screen-eyebrow {
+  margin: 0;
 }
 
 .eggs-ui .shop-note {
@@ -370,7 +954,7 @@
   padding: 10px 14px;
   border: 0;
   border-radius: 14px;
-  background: rgba(255, 255, 255, 0.07);
+  background: rgba(var(--overlay-rgb), 0.07);
   color: var(--text);
   font-family: inherit;
   font-size: 12.5px;
@@ -380,7 +964,7 @@
 }
 
 .eggs-ui .shop-cat-btn:hover {
-  background: rgba(255, 216, 77, 0.12);
+  background: rgba(var(--accent-rgb), 0.12);
   color: var(--accent);
 }
 
@@ -412,8 +996,8 @@
   overflow: hidden;
   border-radius: 16px;
   padding: 14px 78px 14px 14px;
-  background: linear-gradient(135deg, rgba(255, 216, 77, 0.22) 0%, rgba(255, 216, 77, 0.05) 65%, transparent 100%),
-    rgba(255, 255, 255, 0.04);
+  background: linear-gradient(135deg, rgba(var(--accent-rgb), 0.22) 0%, rgba(var(--accent-rgb), 0.05) 65%, transparent 100%),
+    rgba(var(--overlay-rgb), 0.04);
   min-height: 64px;
   display: flex;
   align-items: center;
@@ -495,7 +1079,7 @@
   gap: 3px;
   padding: 12px 8px 10px;
   border-radius: 14px;
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(var(--overlay-rgb), 0.04);
 }
 
 .eggs-ui .shop-card.soon {
@@ -503,7 +1087,7 @@
 }
 
 .eggs-ui .shop-card.owned {
-  box-shadow: inset 0 0 0 1px rgba(255, 216, 77, 0.3);
+  box-shadow: inset 0 0 0 1px rgba(var(--accent-rgb), 0.3);
 }
 
 .eggs-ui .shop-card-tag {
@@ -561,7 +1145,7 @@
   padding: 5px 12px;
   border: 0;
   border-radius: 999px;
-  background: rgba(255, 216, 77, 0.14);
+  background: rgba(var(--accent-rgb), 0.14);
   color: var(--accent);
   font-family: inherit;
   font-size: 10.5px;
@@ -571,7 +1155,7 @@
 }
 
 .eggs-ui .shop-card-buy:hover:not(:disabled) {
-  background: rgba(255, 216, 77, 0.26);
+  background: rgba(var(--accent-rgb), 0.26);
 }
 
 .eggs-ui .shop-card-buy:disabled {
@@ -583,7 +1167,7 @@
   margin-top: 3px;
   font-size: 10px;
   font-weight: 700;
-  color: #8fe3b0;
+  color: var(--status-online);
 }
 
 /* Catégories pas encore garnies : « Bientôt disponible ». */
@@ -610,7 +1194,23 @@
 }
 
 .eggs-ui .search {
+  position: relative;
   padding: 2px 10px 8px;
+}
+
+/* Loupe ajoutée le 30/09/2026 (charte graphique, jeu d'icônes d'action —
+   voir icons.tsx : SearchIcon). top/bottom identiques au padding du
+   conteneur .search ci-dessus : le span occupe donc exactement la même
+   hauteur que l'input, et le flex centre la loupe dessus sans calcul. */
+.eggs-ui .search-icon {
+  position: absolute;
+  left: 20px;
+  top: 2px;
+  bottom: 8px;
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+  color: var(--muted);
 }
 
 .eggs-ui .search input {
@@ -619,8 +1219,8 @@
   border: 0;
   outline: 0;
   border-radius: 16px;
-  padding: 7px 12px;
-  background: rgba(255, 255, 255, 0.07);
+  padding: 7px 12px 7px 30px;
+  background: rgba(var(--overlay-rgb), 0.07);
   color: var(--text);
   font-family: inherit;
   font-size: 12.5px;
@@ -650,8 +1250,8 @@
   padding: 0;
   border: 0;
   border-radius: 50%;
-  background: var(--accent);
-  color: #15151b;
+  background: linear-gradient(135deg, var(--accent-2), var(--accent));
+  color: var(--text-on-accent);
   font-size: 16px;
   font-weight: 700;
   line-height: 1;
@@ -687,39 +1287,40 @@
   width: 17px;
   height: 17px;
   padding: 0;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(var(--overlay-rgb), 0.08);
   border-radius: 50%;
   display: grid;
   place-items: center;
   background: rgba(21, 21, 27, 0.9);
-  color: rgba(255, 255, 255, 0.45);
+  color: rgba(var(--overlay-rgb), 0.45);
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
 }
 .eggs-ui .self-pin-btn:hover {
-  background: rgba(255, 255, 255, 0.14);
-  color: #fff;
+  background: rgba(var(--overlay-rgb), 0.14);
+  color: var(--text);
 }
 .eggs-ui .self-pin-btn.on {
-  background: #f5c451;
-  color: #1a1a1a;
+  background: var(--accent);
+  color: var(--text-on-accent);
   border-color: transparent;
 }
 
 .eggs-ui .soft-btn {
-  padding: 8px 20px;
+  padding: 9px 22px;
   border: 0;
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.07);
+  border-radius: 999px;
+  background: rgba(var(--overlay-rgb), 0.07);
   color: var(--text);
   font-family: inherit;
   font-size: 12.5px;
+  font-weight: 600;
   cursor: pointer;
   transition: background 0.2s, color 0.2s;
 }
 
 .eggs-ui .soft-btn:hover {
-  background: rgba(255, 216, 77, 0.12);
+  background: rgba(var(--accent-rgb), 0.12);
   color: var(--accent);
 }
 
@@ -735,7 +1336,7 @@
   padding: 0;
   border: 2px solid transparent;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(var(--overlay-rgb), 0.06);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -744,7 +1345,7 @@
 }
 
 .eggs-ui .option:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(var(--overlay-rgb), 0.1);
 }
 
 .eggs-ui .swatch {
@@ -780,7 +1381,7 @@
   padding: 0;
   border: 0;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.07);
+  background: rgba(var(--overlay-rgb), 0.07);
   color: var(--text);
   font-size: 13px;
   line-height: 1;
@@ -788,7 +1389,7 @@
   transition: background 0.2s, color 0.2s;
 }
 .eggs-ui .carousel-arrow:hover:not(:disabled) {
-  background: rgba(255, 216, 77, 0.12);
+  background: rgba(var(--accent-rgb), 0.12);
   color: var(--accent);
 }
 .eggs-ui .carousel-arrow:disabled {
@@ -833,15 +1434,21 @@
   width: 100%;
   height: var(--cell);
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(var(--overlay-rgb), 0.05);
   transition: background 0.2s, box-shadow 0.2s;
 }
 .eggs-ui .collection-grid-item:hover {
-  background: rgba(255, 216, 77, 0.1);
+  background: rgba(var(--accent-rgb), 0.1);
 }
 .eggs-ui .collection-grid-item.active {
-  background: rgba(255, 216, 77, 0.14);
+  background: rgba(var(--accent-rgb), 0.14);
   box-shadow: inset 0 0 0 2px var(--accent);
+}
+/* Glissée hors de la grille pour être posée sur l'herbe (voir
+   CustomizeScreen.tsx : onPress) : juste un petit retour visuel pendant le
+   geste, la créature elle-même n'apparaît qu'au relâchement. */
+.eggs-ui .collection-grid-item.dragging {
+  opacity: 0.4;
 }
 .eggs-ui .collection-pick {
   width: 100%;
@@ -858,7 +1465,7 @@
 }
 /* Petit point sur chaque créature déjà posée sur l'herbe — juste un repère
    visuel, pas un bouton (on la range via le bouton rond au-dessus d'elle sur
-   le bureau, PinnedWindow.tsx ; on l'y pose en la glissant hors d'ici). */
+   le bureau, pet/GroundPet.tsx ; on l'y pose en la glissant hors d'ici). */
 .eggs-ui .collection-pinned-dot {
   position: absolute;
   top: 4px;
@@ -866,38 +1473,55 @@
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #f5c451;
+  background: var(--accent);
   box-shadow: 0 0 0 2px rgba(20, 20, 26, 0.55);
   pointer-events: none;
 }
-/* Répertoire : ligne ami + bouton épingle */
-.eggs-ui .dir-row { display: flex; align-items: center; gap: 6px; }
+/* Répertoire : ligne ami + bouton épingle — même carte que .chat-row pour
+   la cohérence visuelle (28/09/2026). */
+.eggs-ui .dir-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 8px 5px 11px;
+  border-radius: 14px;
+  background: rgba(var(--overlay-rgb), 0.035);
+  transition: background 0.2s;
+}
+.eggs-ui .dir-row:hover {
+  background: rgba(var(--overlay-rgb), 0.075);
+}
 .eggs-ui .dir-row .row-main {
   flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px;
-  background: none; border: none; color: inherit; padding: 6px 4px;
+  background: none; border: none; color: inherit; padding: 4px 0;
   cursor: pointer; text-align: left; font: inherit;
+}
+.eggs-ui .dir-names { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.eggs-ui .dir-links { display: flex; flex-wrap: wrap; gap: 8px; }
+.eggs-ui .dir-link {
+  font-size: 10px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .eggs-ui .pin-btn {
   flex: none; width: 28px; height: 28px; border-radius: 50%;
   display: grid; place-items: center; cursor: pointer;
-  background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.45);
-  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(var(--overlay-rgb), 0.06); color: rgba(var(--overlay-rgb), 0.45);
+  border: 1px solid rgba(var(--overlay-rgb), 0.08);
   transition: background .15s, color .15s;
 }
-.eggs-ui .pin-btn:hover:not(:disabled) { background: rgba(255,255,255,0.14); color: #fff; }
-.eggs-ui .pin-btn.on { background: #f5c451; color: #1a1a1a; border-color: transparent; }
+.eggs-ui .pin-btn:hover:not(:disabled) { background: rgba(var(--overlay-rgb), 0.14); color: var(--text); }
+.eggs-ui .pin-btn.on { background: var(--accent); color: var(--text-on-accent); border-color: transparent; }
 .eggs-ui .pin-btn:disabled { opacity: 0.25; cursor: default; }
 .eggs-ui .egg-btn {
   flex: none; width: 28px; height: 28px; border-radius: 50%; font-size: 12px;
   display: grid; place-items: center; cursor: pointer;
-  background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.75);
-  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(var(--overlay-rgb), 0.06); color: rgba(var(--overlay-rgb), 0.75);
+  border: 1px solid rgba(var(--overlay-rgb), 0.08);
   transition: background .15s, color .15s;
 }
-.eggs-ui .egg-btn:hover:not(:disabled) { background: rgba(255, 216, 77, 0.14); }
-.eggs-ui .egg-btn.sent { color: #8fe3b0; }
+.eggs-ui .egg-btn:hover:not(:disabled) { background: rgba(var(--accent-rgb), 0.14); }
+.eggs-ui .egg-btn.sent { color: var(--status-online); }
 .eggs-ui .egg-btn.pending { color: var(--muted); }
-.eggs-ui .egg-btn.error { color: #ff8a80; }
+.eggs-ui .egg-btn.error { color: var(--danger); }
 .eggs-ui .egg-btn:disabled { cursor: default; }
 /* avatar-fix : petites têtes de créatures dans les listes */
 .eggs-ui .creature-avatar {
@@ -917,6 +1541,44 @@
   transform-origin: top left;
 }
 /* ---- Connexion / compte ---- */
+/* Décor ajouté le 30/09/2026 (charte graphique — "Éléments graphiques" et
+   "Patterns / textures") : un lavis de pattern en haut à droite + quelques
+   gouttes façon mascotte, en très discret pour ne pas gêner le formulaire.
+   Seulement les éléments jaune/or (gouttes, swash) sont utilisés ici — les
+   éléments à trait noir (astérisque, cœur) disparaîtraient sur le thème
+   sombre, donc réservés à un usage sur fond clair garanti. */
+.eggs-ui .screen.auth {
+  position: relative;
+  overflow: hidden;
+}
+.eggs-ui .auth-bg-pattern {
+  position: absolute;
+  top: -20px;
+  right: -30px;
+  width: 130px;
+  height: auto;
+  opacity: 0.09;
+  pointer-events: none;
+  z-index: 0;
+  -webkit-mask-image: radial-gradient(circle at 75% 15%, #000 0%, transparent 70%);
+  mask-image: radial-gradient(circle at 75% 15%, #000 0%, transparent 70%);
+}
+.eggs-ui .auth-deco-droplets {
+  position: absolute;
+  top: 4px;
+  right: 10px;
+  width: 30px;
+  height: auto;
+  opacity: 0.9;
+  pointer-events: none;
+  z-index: 0;
+}
+.eggs-ui .screen.auth > h1,
+.eggs-ui .screen.auth > .auth-form,
+.eggs-ui .screen.auth > .auth-switch {
+  position: relative;
+  z-index: 1;
+}
 .eggs-ui .auth { display: flex; flex-direction: column; gap: 10px; }
 .eggs-ui .auth-form { display: flex; flex-direction: column; gap: 8px; }
 .eggs-ui .auth-form input {
@@ -926,7 +1588,7 @@
   outline: 0;
   border-radius: 16px;
   padding: 9px 12px;
-  background: rgba(255, 255, 255, 0.07);
+  background: rgba(var(--overlay-rgb), 0.07);
   color: var(--text);
   caret-color: var(--text);
   font-family: inherit;
@@ -937,9 +1599,9 @@
 }
 .eggs-ui .auth-form input:-webkit-autofill {
   -webkit-text-fill-color: var(--text);
-  box-shadow: 0 0 0 100px #23232c inset;
+  box-shadow: 0 0 0 100px var(--input-autofill-bg) inset;
 }
-.eggs-ui .auth-error { margin: 0; color: #ff8a80; font-size: 12px; }
+.eggs-ui .auth-error { margin: 0; color: var(--danger); font-size: 12px; }
 .eggs-ui .auth-switch {
   border: none;
   background: none;
@@ -959,24 +1621,39 @@
 .eggs-ui .account { padding: 6px 16px 18px; display: flex; flex-direction: column; gap: 12px; overflow-y: auto; }
 .eggs-ui .account-line { margin: 0; font-size: 12.5px; color: var(--muted); }
 .eggs-ui .account-line strong { color: var(--text); }
-.eggs-ui .account-done { margin: 0; font-size: 12px; color: #8fe3b0; }
-.eggs-ui .account-warn { margin: 0; font-size: 12px; line-height: 1.4; color: #ff8a80; }
+.eggs-ui .account-email { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.eggs-ui .account-email-badge { color: var(--muted); }
+.eggs-ui .account-email-badge.ok { color: var(--status-online); }
+.eggs-ui .account-resend-btn {
+  border: 1px dashed rgba(var(--overlay-rgb), 0.14);
+  border-radius: 8px;
+  background: none;
+  color: var(--muted);
+  font-family: inherit;
+  font-size: 11px;
+  padding: 3px 8px;
+  cursor: pointer;
+}
+.eggs-ui .account-resend-btn:hover:not(:disabled) { color: var(--accent); border-color: rgba(var(--accent-rgb), 0.4); }
+.eggs-ui .account-resend-btn:disabled { opacity: 0.5; cursor: default; }
+.eggs-ui .account-done { margin: 0; font-size: 12px; color: var(--status-online); }
+.eggs-ui .account-warn { margin: 0; font-size: 12px; line-height: 1.4; color: var(--danger); }
 .eggs-ui .account-list { display: flex; flex-direction: column; gap: 8px; }
 .eggs-ui .account-btn {
   text-align: left;
   padding: 10px 14px;
   border: 0;
   border-radius: 14px;
-  background: rgba(255, 255, 255, 0.07);
+  background: rgba(var(--overlay-rgb), 0.07);
   color: var(--text);
   font-family: inherit;
   font-size: 12.5px;
   cursor: pointer;
   transition: background 0.2s, color 0.2s;
 }
-.eggs-ui .account-btn:hover { background: rgba(255, 216, 77, 0.12); color: var(--accent); }
-.eggs-ui .account-btn.danger, .eggs-ui .soft-btn.danger { color: #ff8a80; }
-.eggs-ui .account-btn.danger:hover, .eggs-ui .soft-btn.danger:hover { background: rgba(255, 138, 128, 0.14); color: #ff8a80; }
+.eggs-ui .account-btn:hover { background: rgba(var(--accent-rgb), 0.12); color: var(--accent); }
+.eggs-ui .account-btn.danger, .eggs-ui .soft-btn.danger { color: var(--danger); }
+.eggs-ui .account-btn.danger:hover, .eggs-ui .soft-btn.danger:hover { background: rgba(var(--danger-rgb), 0.14); color: var(--danger); }
 .eggs-ui .soft-btn:disabled { opacity: 0.45; cursor: default; }
 .eggs-ui .auth-check { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); cursor: pointer; }
 .eggs-ui .auth-check input { width: auto; margin: 0; padding: 0; background: none; border-radius: 0; accent-color: var(--accent); }
@@ -989,7 +1666,7 @@
   gap: 10px;
   padding: 10px 14px;
   border-radius: 14px;
-  background: rgba(255, 255, 255, 0.07);
+  background: rgba(var(--overlay-rgb), 0.07);
   cursor: pointer;
 }
 .eggs-ui .setting-row input {
@@ -1039,7 +1716,7 @@
   padding: 0;
   border: 0;
   border-radius: 14px;
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(var(--overlay-rgb), 0.05);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1047,7 +1724,7 @@
   transition: background 0.2s, transform 0.15s, box-shadow 0.15s;
 }
 .eggs-ui .farm-egg:hover:not(:disabled) {
-  background: rgba(255, 216, 77, 0.1);
+  background: rgba(var(--accent-rgb), 0.1);
   transform: scale(1.03);
 }
 .eggs-ui .farm-egg:disabled {
@@ -1060,13 +1737,13 @@
   animation: farm-egg-arrive 1.2s ease;
 }
 @keyframes farm-egg-arrive {
-  0% { background: rgba(255, 216, 77, 0.35); transform: scale(0.85); }
-  35% { background: rgba(255, 216, 77, 0.35); transform: scale(1.08); }
-  100% { background: rgba(255, 255, 255, 0.05); transform: scale(1); }
+  0% { background: rgba(var(--accent-rgb), 0.35); transform: scale(0.85); }
+  35% { background: rgba(var(--accent-rgb), 0.35); transform: scale(1.08); }
+  100% { background: rgba(var(--overlay-rgb), 0.05); transform: scale(1); }
 }
 /* Œuf choisi pour être offert : petit liseré pour qu'on sache lequel. */
 .eggs-ui .farm-egg.selected {
-  box-shadow: 0 0 0 2px var(--accent), 0 2px 10px rgba(255, 216, 77, 0.3);
+  box-shadow: 0 0 0 2px var(--accent), 0 2px 10px rgba(var(--accent-rgb), 0.3);
 }
 .eggs-ui .farm-gift-btn {
   position: absolute;
@@ -1076,9 +1753,9 @@
   height: 22px;
   padding: 0;
   border-radius: 50%;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  background: #23232c;
-  color: rgba(255, 255, 255, 0.75);
+  border: 1px solid rgba(var(--overlay-rgb), 0.14);
+  background: var(--input-autofill-bg);
+  color: rgba(var(--overlay-rgb), 0.75);
   font-size: 11px;
   line-height: 1;
   display: grid;
@@ -1087,7 +1764,7 @@
   transition: background 0.15s, color 0.15s, transform 0.15s;
 }
 .eggs-ui .farm-gift-btn:hover:not(:disabled) {
-  background: rgba(255, 216, 77, 0.18);
+  background: rgba(var(--accent-rgb), 0.18);
   color: var(--accent);
   transform: scale(1.08);
 }
@@ -1131,14 +1808,26 @@
 /* ================= Habillage : finitions visuelles ================= */
 
 .eggs-ui {
-  background: radial-gradient(140% 160% at 50% -20%, #202029 0%, #17171d 55%, #101014 100%);
+  background: radial-gradient(140% 160% at 50% -20%, var(--bg-vignette-1) 0%, var(--bg-vignette-2) 55%, var(--bg-vignette-3) 100%);
 }
 
 /* Repère clavier visible sur les champs et boutons */
 .eggs-ui input:focus-visible,
 .eggs-ui button:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 2px rgba(255, 216, 77, 0.45);
+  box-shadow: 0 0 0 2px rgba(var(--accent-rgb), 0.45);
+}
+
+/* Le champ de la barre de saisie (.composer, salon ou chat classique) est
+   un <input> sans arrondi placé dans un conteneur pilule arrondi : la règle
+   générale ci-dessus lui dessinait donc un rectangle (coins carrés) visible
+   qui dépassait de la pilule dès qu'on cliquait dedans pour écrire —
+   signalé par Antoine le 29/09/2026 ("rectangle rose" au clic/à la saisie.
+   La pilule elle-même se met déjà en valeur via .composer:focus-within
+   (bordure) juste au-dessus, donc on retire simplement le halo carré en
+   trop sur l'input plutôt que d'arrondir cet indicateur. */
+.eggs-ui .composer input:focus-visible {
+  box-shadow: none;
 }
 
 .eggs-ui .composer input,
@@ -1146,11 +1835,10 @@
 .eggs-ui .auth-form input {
   transition: background 0.2s, box-shadow 0.2s;
 }
-.eggs-ui .composer input:focus,
 .eggs-ui .search input:focus,
 .eggs-ui .auth-form input:focus {
-  background: rgba(255, 255, 255, 0.1);
-  box-shadow: 0 0 0 2px rgba(255, 216, 77, 0.28);
+  background: rgba(var(--overlay-rgb), 0.1);
+  box-shadow: 0 0 0 2px rgba(var(--accent-rgb), 0.28);
 }
 
 /* Boutons : un léger relief au survol, un retour au clic */
@@ -1173,27 +1861,30 @@
 
 .eggs-ui .composer button,
 .eggs-ui .round-btn {
-  box-shadow: 0 2px 8px rgba(255, 216, 77, 0.25);
+  box-shadow: 0 2px 8px rgba(var(--accent-rgb), 0.25);
   transition: transform 0.15s, box-shadow 0.2s;
 }
 .eggs-ui .composer button:hover,
 .eggs-ui .round-btn:hover {
-  box-shadow: 0 3px 14px rgba(255, 216, 77, 0.4);
+  box-shadow: 0 3px 14px rgba(var(--accent-rgb), 0.4);
   transform: scale(1.06);
 }
 
-/* Bulles de message : un peu plus de relief */
+/* Bulles de message : plus de relief, cohérence avec la planche de
+   référence (28/09/2026) — dégradé + léger halo rose sur les miennes,
+   bordure discrète sur celles reçues pour les détacher du fond. */
 .eggs-ui .bubble.mine {
-  background: linear-gradient(155deg, rgba(255, 216, 77, 0.28), rgba(255, 216, 77, 0.14));
+  background: linear-gradient(155deg, rgba(var(--accent-rgb), 0.32), rgba(var(--accent-rgb), 0.16));
+  box-shadow: 0 2px 10px rgba(var(--accent-rgb), 0.14);
 }
 .eggs-ui .bubble.theirs {
-  background: rgba(255, 255, 255, 0.08);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  background: rgba(var(--overlay-rgb), 0.06);
+  box-shadow: inset 0 1px 0 rgba(var(--overlay-rgb), 0.04);
 }
 
 /* Point « non lu » : un léger halo */
 .eggs-ui .unread-dot {
-  box-shadow: 0 0 0 3px rgba(255, 216, 77, 0.16);
+  box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.16);
 }
 
 /* Onglet actif : petit trait sous l'icône */
@@ -1216,8 +1907,8 @@
   padding: 5px 10px;
   font-size: 10.5px;
   text-align: center;
-  color: #ffb199;
-  background: rgba(255, 138, 128, 0.12);
+  color: var(--danger-text);
+  background: rgba(var(--danger-rgb), 0.12);
 }
 
 .eggs-ui .presence-dot {
@@ -1226,18 +1917,30 @@
   height: 6px;
   margin-left: 6px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(var(--overlay-rgb), 0.15);
   vertical-align: middle;
 }
-.eggs-ui .presence-dot.on {
-  background: #8fe3b0;
-  box-shadow: 0 0 0 2px rgba(143, 227, 176, 0.18);
+.eggs-ui .presence-dot.online {
+  background: var(--status-online);
+  box-shadow: 0 0 0 2px rgba(var(--status-online-rgb), 0.18);
+}
+.eggs-ui .presence-dot.away {
+  background: var(--status-away);
+  box-shadow: 0 0 0 2px rgba(var(--status-away-rgb), 0.18);
+}
+.eggs-ui .presence-dot.offline {
+  background: var(--status-offline);
+  box-shadow: 0 0 0 2px rgba(var(--status-offline-rgb), 0.18);
 }
 
 .eggs-ui .time-divider {
   align-self: center;
-  margin: 6px 0 2px;
+  margin: 8px 0 3px;
+  padding: 3px 11px;
+  border-radius: 999px;
+  background: rgba(var(--overlay-rgb), 0.045);
   font-size: 10px;
+  font-weight: 600;
   color: var(--muted);
 }
 
@@ -1255,43 +1958,344 @@
   height: 22px;
   display: grid;
   place-items: center;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(var(--overlay-rgb), 0.08);
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.06);
-  color: rgba(255, 255, 255, 0.35);
+  background: rgba(var(--overlay-rgb), 0.06);
+  color: rgba(var(--overlay-rgb), 0.35);
   font-size: 11px;
   line-height: 1;
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
 }
 .eggs-ui .remove-btn:hover {
-  background: rgba(255, 138, 128, 0.14);
-  color: #ff8a80;
+  background: rgba(var(--danger-rgb), 0.14);
+  color: var(--danger);
 }
 .eggs-ui .remove-btn.confirm {
-  background: #ff8a80;
-  color: #1a1a1a;
+  background: var(--danger);
+  color: #fff;
   border-color: transparent;
 }
 
 /* ---- Salons ---- */
 .eggs-ui .salon-mine-tag {
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 400;
   color: var(--muted);
 }
-.eggs-ui .salon-count {
+/* Badge chiffré : petit carré à coins arrondis, utilisé pour tout compteur
+   (présence dans un salon, nombre d'éléments dans un espace — voir plus bas
+   .folder-count) — cohérence visuelle demandée le 28/09/2026, sur la base
+   d'une planche de référence. Le variant .accent sert pour ce qui mérite
+   d'attirer l'œil (présence en direct) ; sans lui, le badge reste discret.
+   Le chiffre est plafonné à "99+" au-delà de 99, voir formatCount() dans
+   ui/format.ts. */
+.eggs-ui .count-badge {
   flex: none;
-  min-width: 18px;
-  height: 18px;
-  padding: 0 5px;
-  border-radius: 9px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 4px;
+  border-radius: 6px;
   display: grid;
   place-items: center;
+  background: rgba(var(--overlay-rgb), 0.08);
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+.eggs-ui .count-badge.accent {
   background: var(--accent);
-  color: #1a1a1a;
+  color: var(--text-on-accent);
+}
+
+/* Badge du nombre de discussions/salons dans un espace (en-tête d'espace,
+   voir ChatsScreen.tsx/SalonsScreen.tsx) : pilule "verre dépoli" avec icône,
+   nouveau design importé le 29/09/2026 — distinct du .count-badge ci-dessus
+   (gardé tel quel pour les non-lus/la présence, plus discrets). */
+.eggs-ui .folder-count-badge {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 26px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: rgba(var(--overlay-rgb), 0.07);
+  border: 1px solid rgba(var(--overlay-rgb), 0.09);
+  box-shadow: inset 0 1px 0 rgba(var(--overlay-rgb), 0.07), 0 2px 6px rgba(0, 0, 0, 0.3);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.eggs-ui .folder-count-badge svg {
+  color: rgba(var(--overlay-rgb), 0.85);
+  flex: none;
+}
+
+/* Barre recherche + bouton d'ajout en tête des listes (Chats/Salons/
+   Répertoire) — inspirée de la maquette "Messages" envoyée le 28/09/2026.
+   On garde nos propres écrans/onglets séparés (pas de fusion en une seule
+   liste type/filtrée, ni de barre de titre de fenêtre) : seul l'habillage
+   de cette barre est repris. Réutilise .search (déjà utilisé dans
+   AddFriendScreen/CreateGroupScreen) en l'aplatissant dans une ligne. */
+.eggs-ui .list-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 2px 0 10px;
+}
+.eggs-ui .list-toolbar .search {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+}
+.eggs-ui .list-add-btn {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(135deg, var(--accent-2), var(--accent));
+  color: var(--text-on-accent);
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(var(--accent-rgb), 0.25);
+  transition: transform 0.15s, box-shadow 0.2s;
+}
+.eggs-ui .list-add-btn:hover {
+  box-shadow: 0 3px 14px rgba(var(--accent-rgb), 0.4);
+  transform: scale(1.06);
+}
+.eggs-ui .list-add-btn:active {
+  transform: scale(0.94);
+}
+
+/* Écran Chats fusionné (amis + salons + groupes) depuis le 29/09/2026 — voir
+   ChatsScreen.tsx. Pastilles de filtre Tous/Amis/Salons/Groupes, section par
+   type avec son propre bouton "+" (seulement quand une vraie action existe
+   derrière), et bouton "Rejoindre" sur les salons des autres. */
+.eggs-ui .filter-pills {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 3px;
+  margin: 0 0 12px;
+}
+.eggs-ui .filter-pill {
+  flex: 1;
+  min-width: 0;
+  padding: 3px 4px;
+  border: 1px solid rgba(var(--overlay-rgb), 0.09);
+  border-radius: 999px;
+  background: rgba(var(--overlay-rgb), 0.05);
+  color: var(--muted);
+  font-family: inherit;
+  font-size: 8.5px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: center;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.eggs-ui .filter-pill:hover {
+  color: var(--text);
+  background: rgba(var(--overlay-rgb), 0.09);
+}
+.eggs-ui .filter-pill.active {
+  background: var(--accent);
+  border-color: transparent;
+  color: var(--text-on-accent);
+}
+
+/* Répertoire (voir DirectoryScreen.tsx, nouveau design importé le
+   29/09/2026, inspiré d'une maquette d'Antoine) : onglets Tous/Favoris dans
+   un même rectangle arrondi, tuile d'avatar plus grande, bouton étoile
+   favori. Ligne + menu "⋮" repris du même habillage que Chats/Salons (voir
+   .chat-row-wrap plus haut). */
+.eggs-ui .segmented-tabs {
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+  margin: 8px 0 10px;
+  border-radius: 999px;
+  background: rgba(var(--overlay-rgb), 0.04);
+  border: 1px solid rgba(var(--overlay-rgb), 0.07);
+}
+/* Réduit (demande d'Antoine du 29/09/2026 : "Tous/Favoris" jugé trop
+   grand) — la largeur des deux boutons ne change elle jamais en cliquant
+   (flex: 1 des deux côtés, vérifié : 88px chacun quel que soit l'onglet
+   actif) ; l'impression que la barre "s'allonge" vient du fondu
+   background/box-shadow ci-dessous (transition 0.15s) au changement
+   d'onglet, pas d'un vrai changement de taille. */
+.eggs-ui .segmented-tab {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 5px 8px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  font-family: inherit;
   font-size: 11px;
   font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, box-shadow 0.15s;
+}
+.eggs-ui .segmented-tab:hover {
+  color: var(--text);
+}
+.eggs-ui .segmented-tab.active {
+  background: rgba(var(--accent-rgb), 0.14);
+  color: var(--accent);
+  box-shadow: inset 0 0 0 1px rgba(var(--accent-rgb), 0.45);
+}
+
+/* La maquette du 29/09/2026 avait des tuiles bien plus grandes ici que
+   dans Chats (62px, avatar Creature à 44) — retour d'Antoine du 29/09/2026 :
+   ça donnait l'impression que tout le Répertoire était "dézoomé" moins que
+   le reste (alors que le zoom global de .eggs-ui est bien le même partout,
+   c'est la taille de départ de ces éléments qui différait). Alignée ici sur
+   .row-avatar-tile (40px, voir plus haut) — même taille que dans Chats ;
+   penser à mettre size={34} sur <Creature> dans DirectoryScreen.tsx (comme
+   ChatsScreen.tsx) plutôt que 44. */
+.eggs-ui .row-avatar-tile.dir-avatar-tile {
+  width: 40px;
+  height: 40px;
+  border-radius: 14px;
+}
+
+/* Même taille que .chat-subtitle (10px, voir plus haut) — c'était 11px,
+   seul autre écart de taille avec Chats (voir commentaire ci-dessus). */
+.eggs-ui .dir-recent {
+  font-size: 10px;
+  color: var(--muted);
+}
+
+.eggs-ui .fav-btn {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  margin-left: 2px;
+  border: 0;
+  background: none;
+  color: rgba(var(--overlay-rgb), 0.32);
+  font-size: 16px;
+  line-height: 1;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: color 0.15s, transform 0.1s;
+}
+.eggs-ui .fav-btn:hover {
+  color: rgba(var(--overlay-rgb), 0.65);
+  transform: scale(1.1);
+}
+.eggs-ui .fav-btn.on {
+  color: var(--accent);
+}
+
+.eggs-ui .type-section + .type-section {
+  margin-top: 14px;
+}
+.eggs-ui .type-section-header {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 2px 6px 4px;
+}
+/* Plus d'icône devant le nom (retour d'Antoine du 29/09/2026) : chaque
+   section (Amis/Salons/Groupes) est colorée à la place, via --type-color
+   posé en style inline sur .type-section (voir TypeSection dans
+   ChatsScreen.tsx) — chevron et nom héritent tous les deux de cette
+   couleur (posée ici, sur le bouton, plutôt que sur .type-section-label
+   seul) pour que les deux se colorent ensemble. */
+.eggs-ui .type-section-toggle {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: 0;
+  background: none;
+  padding: 0;
+  margin: 0;
+  line-height: 1;
+  color: var(--type-color, var(--muted));
+  cursor: pointer;
+  text-align: left;
+  transition: opacity 0.15s;
+}
+.eggs-ui .type-section-toggle:hover {
+  opacity: 0.8;
+}
+.eggs-ui .type-section-label {
+  flex: 1;
+  min-width: 0;
+  line-height: 1;
+  font-size: 11.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* Petit point de statut en ligne/hors ligne superposé sur l'avatar d'une
+   ligne de discussion (onglet Chats) — même idée que le .status-tag du
+   Répertoire, mais compact façon WhatsApp/Messenger puisqu'ici la place est
+   déjà prise par l'heure du dernier message. */
+.eggs-ui .row-avatar {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+}
+.eggs-ui .row-status-dot {
+  position: absolute;
+  right: -1px;
+  bottom: -1px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--muted);
+  border: 2px solid var(--bg);
+}
+.eggs-ui .row-status-dot.online {
+  background: var(--status-online);
+}
+/* absent (statut réglé à la main) / hors ligne — voir le commentaire sur
+   .status-tag plus haut pour la logique des trois couleurs. */
+.eggs-ui .row-status-dot.away {
+  background: var(--status-away);
+}
+.eggs-ui .row-status-dot.offline {
+  background: var(--status-offline);
+}
+
+/* Tuile "squircle" derrière l'avatar d'une ligne de chat, avec un halo
+   coloré repris de la couleur de la créature (--tile-rgb, posé en style
+   inline — voir ChatsScreen.tsx et colorRgb() dans data/profile.ts) —
+   nouveau design importé le 29/09/2026. */
+.eggs-ui .row-avatar-tile {
+  width: 40px;
+  height: 40px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  background: radial-gradient(120% 120% at 30% 20%, rgba(var(--tile-rgb), 0.32) 0%, rgba(var(--overlay-rgb), 0.03) 75%);
+  box-shadow:
+    0 3px 10px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(var(--overlay-rgb), 0.07),
+    0 0 14px rgba(var(--tile-rgb), 0.4);
 }
 .eggs-ui .salon-empty {
   text-align: center;
@@ -1310,7 +2314,7 @@
   outline: 0;
   border-radius: 10px;
   padding: 5px 8px;
-  background: rgba(255, 255, 255, 0.07);
+  background: rgba(var(--overlay-rgb), 0.07);
   color: var(--text);
   caret-color: var(--text);
   font-family: inherit;
@@ -1346,8 +2350,8 @@
   gap: 5px;
   padding: 3px 8px 3px 3px;
   border-radius: 14px;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(var(--overlay-rgb), 0.06);
+  border: 1px solid rgba(var(--overlay-rgb), 0.08);
   font-size: 11.5px;
 }
 .eggs-ui .salon-chip-name {
@@ -1363,14 +2367,14 @@
   display: grid;
   place-items: center;
   background: none;
-  color: rgba(255, 255, 255, 0.35);
+  color: rgba(var(--overlay-rgb), 0.35);
   font-size: 9px;
   line-height: 1;
   cursor: pointer;
 }
 .eggs-ui .salon-chip-block:hover {
-  background: rgba(255, 138, 128, 0.2);
-  color: #ff8a80;
+  background: rgba(var(--danger-rgb), 0.2);
+  color: var(--danger);
 }
 .eggs-ui .salon-error {
   margin: 0 10px 8px;
@@ -1391,6 +2395,43 @@
   color: var(--muted);
   padding: 10px;
 }
+/* Bouton "⚑ signaler" sur un message reçu dans un salon (voir
+   SalonModerationScreen.tsx : ReportMessageButton) — ".salon-bubble" scope
+   volontairement (pas juste ".bubble.theirs", partagé avec les bulles du
+   chat privé dans ConversationScreen.tsx, qui n'ont pas ce bouton). */
+.eggs-ui .bubble.salon-bubble.theirs {
+  position: relative;
+  padding-right: 24px;
+}
+.eggs-ui .salon-report-pick {
+  position: absolute;
+  right: 4px;
+  bottom: 5px;
+}
+.eggs-ui .salon-report-btn {
+  border: 0;
+  background: none;
+  padding: 0;
+  font-size: 10px;
+  line-height: 1;
+  color: rgba(var(--overlay-rgb), 0.28);
+  cursor: pointer;
+}
+.eggs-ui .salon-report-btn:hover {
+  color: var(--danger);
+}
+.eggs-ui .salon-report-menu {
+  bottom: 20px;
+  right: 0;
+  left: auto;
+  top: auto;
+}
+.eggs-ui .salon-report-done {
+  font-size: 9px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
 .eggs-ui .salon-bubble-author {
   display: block;
   font-size: 10.5px;
@@ -1412,7 +2453,841 @@
   color: var(--text);
   text-decoration: underline;
 }
-.eggs-ui .salon-blocks {
-  padding: 8px 12px 14px;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
+/* Bouton "⚙" dans l'en-tête, pour ouvrir l'écran plein écran "Modération du
+   salon" (voir SalonModerationScreen.tsx, ui/screens/) — propriétaire ET
+   modérateurs depuis le 29/09/2026 (avant : propriétaire seul, quand ce
+   n'était qu'un petit panneau inline). */
+.eggs-ui .salon-access-btn {
+  margin-left: auto;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--muted);
+  font-size: 14px;
+  cursor: pointer;
+}
+.eggs-ui .salon-access-btn:hover {
+  background: rgba(var(--overlay-rgb), 0.06);
+  color: var(--text);
+}
+
+/* Bouton "Copier le lien du salon" — juste sous l'en-tête, propriétaire
+   seulement (voir data/salons.ts : currentSalonJoinLink). */
+.eggs-ui .salon-share-btn {
+  margin: 0 10px 8px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px dashed rgba(var(--overlay-rgb), 0.15);
+  background: rgba(var(--overlay-rgb), 0.04);
+  color: var(--text);
+  font-size: 11.5px;
+  cursor: pointer;
+}
+.eggs-ui .salon-share-btn:hover {
+  background: rgba(var(--overlay-rgb), 0.08);
+}
+
+.eggs-ui .salon-password-form {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.eggs-ui .salon-password-row {
+  display: flex;
+  gap: 6px;
+}
+.eggs-ui .salon-password-row input {
+  flex: 1;
+  /* Oublié à la création (juste "flex: 1") : sans min-width: 0, un input ne
+     rétrécit jamais sous sa taille par défaut du navigateur dans une ligne
+     flex, il dépasse la carte dès que celle-ci est plus étroite — signalé
+     par Antoine le 29/09/2026. Même correctif que .composer input et
+     .salon-rename input plus haut, plus le style (fond/couleur/arrondi)
+     qui manquait ici aussi. */
+  min-width: 0;
+  box-sizing: border-box;
+  border: 0;
+  outline: 0;
+  border-radius: 16px;
+  padding: 9px 12px;
+  background: rgba(var(--overlay-rgb), 0.07);
+  color: var(--text);
+  caret-color: var(--text);
+  font-family: inherit;
+  font-size: 12.5px;
+}
+
+/* Étoile "modérateur" : badge dans le nom (présence) ou bouton pour nommer
+   quelqu'un modérateur (propriétaire seul, voir SalonsScreen.tsx). */
+.eggs-ui .salon-mod-tag {
+  margin-left: 3px;
+  color: #ffd166;
+  font-size: 9px;
+}
+.eggs-ui .salon-chip-mod {
+  flex: none;
+  width: 15px;
+  height: 15px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: none;
+  color: rgba(var(--overlay-rgb), 0.35);
+  font-size: 9px;
+  line-height: 1;
+  cursor: pointer;
+}
+.eggs-ui .salon-chip-mod:hover {
+  background: rgba(255, 209, 102, 0.2);
+  color: #ffd166;
+}
+
+.eggs-ui .salon-join-password {
+  width: 100%;
+  max-width: 220px;
+}
+
+/* ===================== Modération du salon =====================
+   Écran demandé par Antoine le 29/09/2026, inspiré d'une maquette qu'il a
+   fournie — voir SalonModerationScreen.tsx. D'abord fait comme un overlay
+   plein écran par-dessus la discussion, corrigé le même jour : Antoine ne
+   voulait pas d'un effet "nouvelle fenêtre", mais un écran normal dans
+   l'appli, comme les sous-menus du Profil (.conversation + .conv-header,
+   réutilisés tels quels — voir SalonModerationScreen.tsx). Palette de
+   l'appli (rose --accent) plutôt que le violet de la maquette, pour rester
+   cohérent avec le reste de l'interface. */
+
+.eggs-ui .salon-mod-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 10px 14px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.eggs-ui .salon-mod-card {
+  padding: 12px;
+  border-radius: 16px;
+  background: rgba(var(--overlay-rgb), 0.035);
+  border: 1px solid rgba(var(--overlay-rgb), 0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.eggs-ui .salon-mod-card-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+.eggs-ui .salon-mod-card-icon {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: rgba(var(--accent-rgb), 0.16);
+  font-size: 14px;
+}
+.eggs-ui .salon-mod-card-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.eggs-ui .salon-mod-card-title {
+  font-size: 13.5px;
+  font-weight: 700;
+}
+.eggs-ui .salon-mod-card-sub {
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.35;
+}
+
+/* 4 cartes de niveau d'accès (Privé/Amis/Amis d'amis/Ouvert) — grille 2x2,
+   même esprit que la maquette d'Antoine. */
+.eggs-ui .salon-mod-levels {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.eggs-ui .salon-mod-level {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  padding: 10px 10px 9px;
+  border-radius: 12px;
+  border: 1.5px solid rgba(var(--overlay-rgb), 0.08);
+  background: rgba(var(--overlay-rgb), 0.03);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  font-family: inherit;
+}
+.eggs-ui .salon-mod-level:hover {
+  border-color: rgba(var(--overlay-rgb), 0.18);
+}
+.eggs-ui .salon-mod-level.selected {
+  border-color: var(--accent);
+  background: rgba(var(--accent-rgb), 0.1);
+}
+.eggs-ui .salon-mod-level-check {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  width: 16px;
+  height: 16px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--text-on-accent);
+  font-size: 9px;
+}
+.eggs-ui .salon-mod-level-icon {
+  font-size: 15px;
+}
+.eggs-ui .salon-mod-level-label {
+  font-size: 12px;
+  font-weight: 700;
+}
+.eggs-ui .salon-mod-level-sub {
+  font-size: 10px;
+  color: var(--muted);
+  line-height: 1.3;
+}
+
+.eggs-ui .salon-mod-radios {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.eggs-ui .salon-mod-radio {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+.eggs-ui .salon-mod-radio input {
+  accent-color: var(--accent);
+  width: 15px;
+  height: 15px;
+}
+
+.eggs-ui .salon-mod-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+.eggs-ui .salon-mod-toggle-row input {
+  accent-color: var(--accent);
+  width: 32px;
+  height: 18px;
+  flex: none;
+}
+
+.eggs-ui .salon-mod-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 9px 4px;
+  border: 0;
+  border-top: 1px solid rgba(var(--overlay-rgb), 0.06);
+  background: none;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 12.5px;
+  text-align: left;
+  cursor: pointer;
+}
+.eggs-ui .salon-mod-row:first-of-type {
+  border-top: 0;
+}
+.eggs-ui .salon-mod-row:hover {
+  color: var(--accent);
+}
+.eggs-ui .salon-mod-row.danger-row:hover {
+  color: var(--danger);
+}
+.eggs-ui .salon-mod-row-right {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.eggs-ui .salon-mod-save {
+  flex: none;
+  margin: 6px 14px calc(10px + env(safe-area-inset-bottom, 0px));
+  padding: 12px;
+  border: 0;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--accent-2), var(--accent));
+  color: var(--text-on-accent);
+  font-weight: 700;
+  font-size: 13.5px;
+  cursor: pointer;
+  box-shadow: 0 3px 14px rgba(var(--accent-rgb), 0.35);
+}
+.eggs-ui .salon-mod-save:disabled {
+  opacity: 0.4;
+  cursor: default;
+  box-shadow: none;
+}
+
+.eggs-ui .salon-mod-reports {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.eggs-ui .salon-mod-report {
+  padding: 9px 10px;
+  border-radius: 10px;
+  background: rgba(var(--overlay-rgb), 0.03);
+  border: 1px solid rgba(var(--overlay-rgb), 0.06);
+}
+.eggs-ui .salon-mod-report-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 11.5px;
+  color: var(--muted);
+}
+.eggs-ui .salon-mod-report-reason {
+  flex: none;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: rgba(var(--danger-rgb), 0.15);
+  color: var(--danger);
+  font-size: 10px;
+}
+.eggs-ui .salon-mod-report-text {
+  margin: 6px 0;
+  font-size: 12.5px;
+  color: var(--text);
+}
+.eggs-ui .salon-mod-report-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.eggs-ui .salon-mod-requests {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+.eggs-ui .salon-mod-request {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 6px;
+  border-radius: 10px;
+  background: rgba(var(--overlay-rgb), 0.03);
+}
+.eggs-ui .salon-mod-request .salon-chip-name {
+  flex: 1;
+  min-width: 0;
+}
+.eggs-ui .salon-mod-request .soft-btn,
+.eggs-ui .salon-mod-request .salon-leave-btn {
+  flex: none;
+  padding: 4px 9px;
+  font-size: 11px;
+}
+
+/* ================= Étape 4 : Groupes (fermés, façon WhatsApp) ================= */
+
+/* Avatar de groupe : têtes de créature des membres qui se chevauchent (voir
+   ui/GroupAvatar.tsx) — même conteneur que .creature-avatar (voir plus haut),
+   juste en position relative pour pouvoir décaler chaque tête dedans. */
+.eggs-ui .group-avatar {
+  position: relative;
+  display: inline-block;
+  flex-shrink: 0;
+}
+.eggs-ui .group-avatar-item {
+  position: absolute;
+  top: 0;
+  left: 0;
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px var(--bg);
+}
+
+/* Nom de l'expéditeur au-dessus de son premier message d'une série, dans un
+   groupe (jamais pour mes propres messages, voir ConversationScreen.tsx :
+   showSender) — même traitement que .salon-bubble-author, pour rester
+   cohérent avec l'autre endroit où plusieurs personnes partagent un fil. */
+.eggs-ui .sender-name {
+  margin: 2px 12px 0;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--accent);
+}
+.eggs-ui .msg-row.mine .sender-name {
+  display: none;
+}
+
+/* Quitter / supprimer un groupe (voir ConversationScreen.tsx :
+   handleLeaveOrDelete) — un bouton texte en bas, comme .salon-leave-btn
+   (« Sortir du salon ») : pas une icône ✕ en haut à droite, qui se confondait
+   avec .panel-close (ferme tout le panneau Eggs, même coin — voir App.tsx). */
+.eggs-ui .salon-leave-btn.confirm {
+  color: var(--danger);
+}
+
+/* Ligne de sélection d'un membre (voir ui/screens/CreateGroupScreen.tsx) :
+   même look qu'un .chat-row, avec une coche qui s'allume à droite. */
+.eggs-ui .member-row {
+  box-sizing: border-box;
+}
+.eggs-ui .member-check {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  border: 1.5px solid rgba(var(--overlay-rgb), 0.18);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  color: var(--bg);
+  transition: background 0.15s, border-color 0.15s;
+}
+.eggs-ui .member-check.on {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+/* Bouton principal (créer le groupe) : plein plutôt qu'en pointillés comme
+   .add-btn — c'est l'action qui conclut l'écran, pas une simple invite.
+   Dégradé + halo façon planche de référence (28/09/2026), réservé aux
+   actions qui terminent un écran — le reste garde .soft-btn, plus neutre. */
+.eggs-ui .add-btn.primary {
+  border: 0;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--accent-2), var(--accent));
+  color: var(--text-on-accent);
+  font-weight: 700;
+  box-shadow: 0 3px 14px rgba(var(--accent-rgb), 0.35);
+}
+.eggs-ui .add-btn.primary:hover {
+  background: linear-gradient(135deg, var(--accent-2), var(--accent));
+  box-shadow: 0 4px 18px rgba(var(--accent-rgb), 0.5);
+  transform: translateY(-1px);
+}
+.eggs-ui .add-btn.primary:disabled {
+  opacity: 0.35;
+  cursor: default;
+  box-shadow: none;
+  background: rgba(var(--overlay-rgb), 0.07);
+  color: var(--muted);
+}
+
+/* ---- Espaces (Chats et Salons — voir ChatsScreen.tsx / SalonsScreen.tsx,
+   deux systèmes séparés mais mêmes styles, décision du 27/09/2026 ; appelés
+   "cercles" jusqu'au 27/09/2026, renommés "espaces" le même jour. Plus de
+   bouton de création à part : "+ Nouvel espace" vit dans le menu
+   .chat-folder-menu, voir plus bas — d'où .folder-new-form réutilisé là. ---- */
+
+.eggs-ui .folder-new-form {
+  display: flex;
+  gap: 6px;
+  width: 100%;
+}
+.eggs-ui .folder-new-form input {
+  flex: 1;
+  min-width: 0;
+  box-sizing: border-box;
+  border: 0;
+  outline: 0;
+  border-radius: 10px;
+  padding: 6px 10px;
+  background: rgba(var(--overlay-rgb), 0.07);
+  color: var(--text);
+  caret-color: var(--text);
+  font-family: inherit;
+  font-size: 13px;
+}
+
+.eggs-ui .folder-section + .folder-section {
+  margin-top: 4px;
+}
+.eggs-ui .folder-header {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 2px 2px 4px;
+}
+.eggs-ui .folder-header-btn {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 6px 2px;
+  cursor: pointer;
+  text-align: left;
+}
+.eggs-ui .folder-header-btn:hover {
+  color: var(--text);
+}
+.eggs-ui .folder-chevron {
+  flex: none;
+  display: inline-block;
+  line-height: 1;
+  font-size: 10px;
+  transition: transform 0.15s;
+}
+.eggs-ui .folder-chevron.closed {
+  transform: rotate(-90deg);
+}
+.eggs-ui .folder-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.eggs-ui .folder-actions {
+  flex: none;
+  display: flex;
+  gap: 4px;
+}
+
+/* Bouton icône "verre dépoli" à coins arrondis (squircle) — style partagé
+   pour toutes les actions courtes sur une ligne (renommer, supprimer,
+   ranger dans un espace...). Nouveau design importé le 29/09/2026 (remplace
+   le premier passage en carré uni du 28/09/2026) ; même hauteur que
+   .folder-count-badge pour s'aligner avec lui dans l'en-tête d'espace. */
+.eggs-ui .icon-btn {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 1px solid rgba(var(--overlay-rgb), 0.09);
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  background: rgba(var(--overlay-rgb), 0.07);
+  box-shadow: inset 0 1px 0 rgba(var(--overlay-rgb), 0.07), 0 2px 6px rgba(0, 0, 0, 0.3);
+  color: rgba(var(--overlay-rgb), 0.8);
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, box-shadow 0.15s, border-color 0.15s;
+}
+.eggs-ui .icon-btn:hover {
+  background: rgba(var(--overlay-rgb), 0.14);
+  color: var(--text);
+}
+/* Action destructive (supprimer) : liseré et lueur roses en permanence,
+   pour se distinguer d'emblée des autres boutons — pas seulement une fois
+   le clic de confirmation armé (voir .confirm juste en dessous, qui
+   intensifie encore l'effet à ce moment-là). */
+.eggs-ui .icon-btn.delete {
+  background: rgba(var(--accent-rgb), 0.1);
+  border-color: rgba(var(--accent-rgb), 0.5);
+  color: var(--accent);
+  box-shadow:
+    0 0 0 1px rgba(var(--accent-rgb), 0.3),
+    0 0 10px rgba(var(--accent-rgb), 0.4),
+    inset 0 1px 0 rgba(var(--overlay-rgb), 0.06);
+}
+.eggs-ui .icon-btn.delete:hover {
+  background: rgba(var(--accent-rgb), 0.18);
+  color: var(--text-on-accent);
+}
+.eggs-ui .icon-btn.delete.confirm {
+  background: rgba(var(--accent-rgb), 0.3);
+  border-color: var(--accent);
+  color: var(--text-on-accent);
+  box-shadow:
+    0 0 0 1.5px rgba(var(--accent-rgb), 0.6),
+    0 0 16px rgba(var(--accent-rgb), 0.7),
+    inset 0 1px 0 rgba(var(--overlay-rgb), 0.1);
+}
+.eggs-ui .folder-rename-form {
+  flex: 1;
+  min-width: 0;
+}
+.eggs-ui .folder-rename-form input {
+  width: 100%;
+  box-sizing: border-box;
+  border: 0;
+  outline: 0;
+  border-radius: 8px;
+  padding: 5px 8px;
+  background: rgba(var(--overlay-rgb), 0.07);
+  color: var(--text);
+  caret-color: var(--text);
+  font-family: inherit;
+  font-size: 13px;
+}
+.eggs-ui .folder-empty {
+  font-size: 11.5px;
+  color: var(--muted);
+  padding: 2px 8px 6px;
+}
+.eggs-ui .chat-list-nested {
+  padding-left: 6px;
+}
+
+/* Ligne + bouton d'options "⋮" fusionnés dans un seul rectangle arrondi
+   continu (plutôt que 2 blocs séparés avec un espace visible entre les
+   deux) — même traitement pour les chats et les salons depuis le
+   29/09/2026, voir la capture de référence d'Antoine. */
+.eggs-ui .chat-row-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0;
+  padding-right: 6px;
+  border-radius: 14px;
+  background: rgba(var(--overlay-rgb), 0.035);
+  transition: background 0.15s;
+}
+.eggs-ui .chat-row-wrap:hover {
+  background: rgba(var(--overlay-rgb), 0.075);
+}
+.eggs-ui .chat-row-wrap .chat-row {
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+}
+.eggs-ui .chat-row-wrap .chat-row:hover {
+  background: transparent;
+}
+.eggs-ui .chat-folder-pick {
+  position: relative;
+  flex: none;
+  margin-left: 2px;
+}
+
+/* La carte de salon sur 2 lignes (nom seul au-dessus, avatar+présence
+   en dessous) a été retirée le 29/09/2026 : conçue le même jour pour
+   éviter que le nom ne chevauche le bouton "Rejoindre", elle n'avait
+   plus lieu d'être depuis sa suppression (on entre en cliquant sur la
+   ligne, voir joinSalon dans SalonFlatList) — et avec un avatar à la
+   même taille que Chats/Groupes (40px), la carte à 2 lignes rendait les
+   salons plus "gros" que le reste (retour d'Antoine). Les salons de
+   SalonFlatList réutilisent maintenant .chat-row/.chat-names tels
+   quels, comme Chats et Groupes — plus rien à redéfinir ici.
+
+   Rename en ligne de mon salon depuis le menu ⋮ (voir SalonsScreen.tsx :
+   "✎ Renommer mon salon") : remplace toute la ligne par un champ, même
+   empreinte visuelle que .chat-row pour que ça ne saute pas trop à l'oeil. */
+.eggs-ui .salon-rename-row {
+  flex: 1;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 9px 11px;
+  border-radius: 14px;
+  background: transparent;
+}
+.eggs-ui .salon-rename-row input {
+  width: 100%;
+  box-sizing: border-box;
+  border: 0;
+  outline: 0;
+  border-radius: 8px;
+  padding: 5px 8px;
+  background: rgba(var(--overlay-rgb), 0.07);
+  color: var(--text);
+  caret-color: var(--text);
+  font-family: inherit;
+  font-size: 14px;
+}
+.eggs-ui .chat-folder-menu {
+  position: absolute;
+  top: calc(100% + 2px);
+  right: 0;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  min-width: 140px;
+  padding: 4px;
+  border-radius: 10px;
+  background: var(--color-surface-warm);
+  border: 1px solid rgba(var(--overlay-rgb), 0.1);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+}
+.eggs-ui .chat-folder-menu button {
+  border: 0;
+  background: none;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 12.5px;
+  text-align: left;
+  padding: 6px 8px;
+  border-radius: 7px;
+  cursor: pointer;
+}
+.eggs-ui .chat-folder-menu button:hover {
+  background: rgba(var(--overlay-rgb), 0.07);
+}
+.eggs-ui .chat-folder-menu button.active {
+  color: var(--accent);
+  font-weight: 600;
+}
+.eggs-ui .chat-folder-menu-sep {
+  height: 1px;
+  margin: 4px 2px;
+  background: rgba(var(--overlay-rgb), 0.1);
+}
+.eggs-ui .chat-folder-menu button.add {
+  color: var(--muted);
+}
+.eggs-ui .chat-folder-menu button.add:hover {
+  color: var(--accent);
+  background: rgba(var(--accent-rgb), 0.05);
+}
+.eggs-ui .chat-folder-menu .folder-new-form {
+  padding: 2px;
+}
+
+/* Menu d'options "⋮" d'une ligne de discussion (renommé depuis l'ancien
+   bouton 🗂 direct, "Ranger dans un espace" en fait maintenant partie —
+   nouveau design importé le 29/09/2026, voir ChatsScreen.tsx). Même carte
+   que .chat-folder-menu, juste un peu plus large pour les libellés plus
+   longs. */
+.eggs-ui .row-menu {
+  position: absolute;
+  top: calc(100% + 2px);
+  right: 0;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  min-width: 190px;
+  padding: 4px;
+  border-radius: 10px;
+  background: var(--color-surface-warm);
+  border: 1px solid rgba(var(--overlay-rgb), 0.1);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+}
+.eggs-ui .row-menu button {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  border: 0;
+  background: none;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 12.5px;
+  text-align: left;
+  padding: 7px 9px;
+  border-radius: 7px;
+  cursor: pointer;
+}
+/* Icônes ligne devant certains items (voir icons.tsx) : légèrement estompées,
+   ne prennent pas la couleur "danger" quand l'item est destructif (le texte
+   suffit à le signaler). */
+.eggs-ui .row-menu button svg {
+  flex: none;
+  opacity: 0.75;
+}
+.eggs-ui .row-menu button:hover:not(:disabled) {
+  background: rgba(var(--overlay-rgb), 0.07);
+}
+.eggs-ui .row-menu button:disabled {
+  color: var(--muted);
+  cursor: default;
+  opacity: 0.5;
+}
+.eggs-ui .row-menu button.danger {
+  color: var(--accent);
+}
+.eggs-ui .row-menu button.danger:hover {
+  background: rgba(var(--accent-rgb), 0.1);
+}
+.eggs-ui .row-menu button.danger.confirm {
+  background: rgba(var(--accent-rgb), 0.18);
+  color: var(--text-on-accent);
+  font-weight: 600;
+}
+
+/* Appel de salon (voix + partage d'écran, voir data/salonCall.ts). Le bouton
+   "Rejoindre" a le même look que .salon-share-btn (bordure en pointillés) ;
+   une fois dedans, .salon-call-panel reprend le fond léger de .salon-access. */
+.eggs-ui .salon-call {
+  margin: 0 10px 8px;
+}
+.eggs-ui .salon-call-join {
+  width: 100%;
+}
+.eggs-ui .salon-call-panel {
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(var(--overlay-rgb), 0.04);
+  border: 1px solid rgba(var(--overlay-rgb), 0.08);
+}
+.eggs-ui .salon-call-people {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+.eggs-ui .salon-call-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+.eggs-ui .salon-call-controls .salon-leave-btn {
+  margin: 0;
+}
+/* Partage d'écran reçu : une vignette vidéo par personne qui partage, en
+   dessous des puces de participants. */
+.eggs-ui .salon-call-screen {
+  display: block;
+  width: 100%;
+  max-height: 160px;
+  object-fit: contain;
+  border-radius: 8px;
+  background: #000;
+  margin-bottom: 8px;
+}
+
+/* Notre propre sélecteur d'écran/fenêtre (voir data/salonCall.ts) : une
+   simple liste de boutons, réutilise .account-btn (même look que la liste de
+   modérateurs/bannis un peu plus haut dans ce fichier). */
+.eggs-ui .salon-share-picker {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed rgba(var(--overlay-rgb), 0.1);
+}
+.eggs-ui .salon-share-picker-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 8px;
+  max-height: 160px;
+  overflow-y: auto;
 }

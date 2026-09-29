@@ -39,7 +39,7 @@ const CATEGORIES: { id: CategoryId; label: string; icon: string }[] = [
 
 type RowState = "idle" | "buying" | { done: true } | { done: number };
 
-export default function ShopScreen() {
+export default function ShopScreen({ onBack }: { onBack?: () => void }) {
   const [category, setCategory] = useState<CategoryId>("featured");
   const [boxes, setBoxes] = useState<ApiEggBox[] | null>(null);
   const [skins, setSkins] = useState<ApiSkin[] | null>(null);
@@ -197,7 +197,16 @@ export default function ShopScreen() {
   return (
     <section className="screen shop-screen">
       <div className="shop-head">
-        <span className="screen-eyebrow">Extras</span>
+        {onBack ? (
+          <div className="shop-head-row">
+            <button className="back" onClick={onBack} aria-label="Retour au profil">
+              &lsaquo;
+            </button>
+            <span className="screen-eyebrow">Extras</span>
+          </div>
+        ) : (
+          <span className="screen-eyebrow">Extras</span>
+        )}
         <h1>Shop</h1>
         <p className="shop-note">Maquette : rien n'est débité pour l'instant, c'est offert le temps de tester.</p>
       </div>

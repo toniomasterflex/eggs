@@ -55,3 +55,43 @@ export async function deleteSessions(userId: string, exceptToken?: string): Prom
     await query("DELETE FROM sessions WHERE user_id = $1", [userId]);
   }
 }
+
+// --------------------------------------------- Vérification d'email
+//
+// Même principe que les sessions ci-dessus (jeton aléatoire, seule son
+// empreinte est gardée en base) mais à usage unique et de courte durée — voir
+// db.ts : email_verifications, mail.ts pour l'envoi, index.ts pour les
+// routes GET /verify-email/:token et POST /me/resend-verification.
+
+const EMAIL_VERIFICATION_TTL_MS = 24 * 60 * 60 * 1000; // 24h
+
+export async function createEmailVerificationToken(userId: string): Promise<string> {
+  const token = randomBytes(32).toString("base64url");
+  const expiresAt = new Date(Date.now() + EMAIL_VERIFICATION_TTL_MS);
+  await query("INSERT INTO email_verifications (token_hash, user_id, expires_at) VALUES ($1, $2, $3)", [
+    sha256(token),
+    userId,
+    expiresAt.toISOString(),
+  ]);
+  return token;
+}
+
+/** À usage unique : le jeton est supprimé qu'il soit valide ou non. Renvoie
+ *  l'utilisateur concerné, ou null si le jeton est inconnu ou expiré. */
+export async function consumeEmailVerificationToken(token: string): Promise<string | null> {
+  const rows = await query<{ user_id: string; expires_at: string }>(
+    "DELETE FROM email_verifications WHERE token_hash = $1 RETURNING user_id, expires_at",
+    [sha256(token)],
+  );
+  const row = rows[0];
+  if (!row) return null;
+  if (new Date(row.expires_at).getTime() < Date.now()) return null;
+  return row.user_id;
+}
+
+/** Invalide les jetons déjà émis pour cette personne avant d'en renvoyer un
+ *  nouveau (voir POST /me/resend-verification) : un seul lien valide à la
+ *  fois, le précédent ne doit plus marcher. */
+export async function clearEmailVerificationTokens(userId: string): Promise<void> {
+  await query("DELETE FROM email_verifications WHERE user_id = $1", [userId]);
+}

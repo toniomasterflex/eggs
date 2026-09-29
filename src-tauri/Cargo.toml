@@ -1,6 +1,6 @@
 [package]
 name = "eggs"
-version = "0.1.0"
+version = "0.2.1"
 description = "A Tauri App"
 authors = ["you"]
 edition = "2021"
@@ -18,17 +18,46 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
-tauri = { version = "2", features = ["tray-icon"] }
+tauri = { version = "2", features = ["tray-icon", "devtools"] }
 tauri-plugin-opener = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 windows-sys = { version = "0.61.2", features = ["Win32_UI_Input_KeyboardAndMouse", "Win32_UI_WindowsAndMessaging", "Win32_Foundation"] }
-tauri-plugin-single-instance = "2.4.5"
+# Feature "deep-link" : nécessaire pour que le protocole eggs:// (voir
+# tauri-plugin-deep-link plus bas) fonctionne quand Eggs tourne déjà (Windows
+# relance l'appli avec le lien en argument ; ce plugin l'intercepte au lieu
+# d'ouvrir une deuxième fenêtre — voir lib.rs : rien à coder à la main ici,
+# les deux plugins se coordonnent tout seuls une fois tous les deux enregistrés).
+tauri-plugin-single-instance = { version = "2.4.5", features = ["deep-link"] }
 tauri-plugin-autostart = "2.5.1"
 # Mise à jour automatique (voir UPDATING.md à la racine du projet pour la
 # mise en place : clé de signature + dépôt GitHub qui héberge les versions).
 tauri-plugin-updater = "2"
 tauri-plugin-process = "2"
+# Lien de salon partageable (eggs://salon/<id>) : voir tauri.conf.json
+# (plugins.deep-link.desktop.schemes) et server/src/index.ts (GET
+# /join/:ownerId, la page web qui déclenche ce lien). Enregistré par
+# l'installeur NSIS — ne marche QUE sur une version installée, pas en
+# `npm run tauri dev` (voir UPDATING.md).
+tauri-plugin-deep-link = "2"
+# Partage de photo/vidéo/son en conversation (glisser-déposer) : lit les
+# octets du fichier déposé, dont Tauri ne donne que le chemin (voir
+# ConversationScreen.tsx côté React).
+tauri-plugin-fs = "2"
+# Partage d'écran des appels de salon (voir capture.rs) : notre propre
+# sélecteur d'écran/fenêtre, en remplacement de celui de WebView2 — cassé et
+# non corrigé chez Microsoft dans les fenêtres petites/transparentes comme la
+# nôtre (issues MicrosoftEdge/WebView2Feedback #2184, #5173, #1850).
+# windows-capture garde une session de capture ouverte en continu (pas de
+# recréation à chaque image, contrairement à des crates orientées
+# "screenshot ponctuel" comme xcap — voir nashaofu/xcap#287, qui provoque
+# sinon un clignotement du témoin de capture Windows et une charge CPU
+# inutile à 10 images/seconde).
+windows-capture = "2"
+# Encodage JPEG des images capturées avant envoi au front (voir capture.rs) —
+# version alignée sur celle qu'utilise windows-capture en interne pour éviter
+# un conflit de versions.
+image = "0.25"
 
 
 # Read the optimization guideline for more details: https://tauri.app/concept/size/#cargo-configuration

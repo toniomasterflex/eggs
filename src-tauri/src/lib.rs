@@ -8,12 +8,18 @@ use std::{
     time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
 use tauri_plugin_autostart::ManagerExt;
+use tauri_plugin_deep_link::DeepLinkExt;
 use tauri_plugin_updater::UpdaterExt;
 use tauri::{
     menu::{CheckMenuItem, Menu, MenuItem},
     tray::TrayIconBuilder,
     Emitter, Manager, WebviewUrl, WebviewWindowBuilder,
 };
+
+// Partage d'écran des appels de salon (voir capture.rs : notre propre
+// sélecteur, en remplacement de celui de WebView2).
+mod capture;
+use capture::{list_capture_sources, start_screen_capture, stop_screen_capture};
 
 // ---- Réglages de détection (en pixels physiques) ----
 const POLL_MS: u64 = 60; // fréquence de lecture de la souris
@@ -66,6 +72,13 @@ static MEETING_MODE: AtomicBool = AtomicBool::new(false);
 // détection peut se tromper, il faut toujours un moyen sûr de la couper
 // même si elle a caché ma créature (et donc le panneau Réglages) par erreur.
 static AUTO_HIDE_FULLSCREEN: AtomicBool = AtomicBool::new(false);
+// Ma créature PRINCIPALE (fenêtre "main", pas un extra épinglé depuis « Ma
+// collection ») est-elle actuellement à l'écran ? Elle ne passe pas par le
+// système pin_pet/PINNED (elle vit toujours dans la fenêtre "main", voir
+// place_me), donc pas de vraie entrée pour elle dans PINNED : App.tsx
+// appelait déjà pin_set_active("main", …) sans effet (aucune entrée "main"
+// dans la table) — on lui donne enfin un état, utilisé par self_pin_active.
+static MAIN_PET_ACTIVE: AtomicBool = AtomicBool::new(false);
 // Est-ce qu'une appli est actuellement détectée en plein écran (état déduit,
 // pas un réglage) ? Sert à savoir si on doit se remontrer.
 static FULLSCREEN_NOW: AtomicBool = AtomicBool::new(false);
@@ -83,6 +96,14 @@ struct Area {
     right: f64,
     bottom: f64,
     scale: f64, // échelle d'affichage Windows (100 %, 125 %, 150 %...)
+    // Coin haut gauche du MONITEUR entier (pas la zone de travail, qui
+    // exclut la barre des tâches) — ajoutés le 29/09/2026 pour la fenêtre
+    // partagée "pets" (voir setup_pets) : elle couvre tout le moniteur (pour
+    // pouvoir glisser une créature n'importe où, pas seulement sur la zone
+    // de travail), donc les coordonnées locales envoyées à React doivent
+    // être relatives à CE coin-là, pas à celui de la zone de travail.
+    mon_left: f64,
+    mon_top: f64,
 }
 
 static AREA: OnceLock<Mutex<Area>> = OnceLock::new();
@@ -103,12 +124,15 @@ fn area_set(a: Area) {
 /// Calcule la zone de travail (hors barre des tâches) d'un écran.
 fn compute_area(mon: &tauri::Monitor, scale: f64) -> Area {
     let work = mon.work_area();
+    let pos = mon.position();
     Area {
         left: work.position.x as f64,
         top: work.position.y as f64,
         right: (work.position.x + work.size.width as i32) as f64,
         bottom: (work.position.y + work.size.height as i32) as f64,
         scale,
+        mon_left: pos.x as f64,
+        mon_top: pos.y as f64,
     }
 }
 
@@ -170,6 +194,15 @@ struct Pinned {
     fall_target_y: f64,
     fall_x: f64,
     fall_start: Instant,
+    // Position (coin haut gauche, pixels physiques — même repère que
+    // window_pos) pendant un glissement : pour "main", inutilisés (on lit
+    // encore la vraie fenêtre OS, voir finish_drag) ; pour un pet de l'herbe
+    // (ami ou créature à moi), plus de fenêtre à lui tout seul depuis le
+    // 29/09/2026 (voir la fenêtre partagée "pets"), donc c'est React qui
+    // nous les envoie en direct pendant le glissement (voir pin_drag_at),
+    // et finish_drag les lit d'ici au lieu de win.outer_position().
+    drag_x: f64,
+    drag_y: f64,
 }
 
 static PINNED: LazyLock<Mutex<HashMap<String, Pinned>>> =
@@ -381,18 +414,37 @@ fn left_button_down() -> bool {
 
 // ---------------------------------------------------- Surveillance souris
 
+/// Convertit une position physique (repère Area/window_pos/snap...) en
+/// position logique relative au coin haut gauche du MONITEUR — le repère
+/// qu'utilise React dans la fenêtre partagée "pets" (voir setup_pets : elle
+/// est positionnée exactement à ce coin-là, à l'échelle du moniteur entier).
+fn local_xy(a: &Area, x: f64, y: f64) -> (f64, f64) {
+    ((x - a.mon_left) / a.scale, (y - a.mon_top) / a.scale)
+}
+
 /// Fin d'un glissement : le pet se colle au bord le plus proche — sauf une
 /// créature de l'herbe lâchée plus haut sur l'écran, qui y tombe au lieu de
 /// s'y téléporter (voir tick_fall : l'herbe est la limite basse de ses
 /// pieds, « on a décidé qu'elles sont toutes à la même hauteur »).
+///
+/// "main" garde sa propre fenêtre (voir place_me) : on lit sa position
+/// réelle (win.outer_position()), comme avant le 29/09/2026. Un pet de
+/// l'herbe (ami ou créature à moi) n'a plus de fenêtre à lui depuis ce
+/// jour-là (voir pin_pet, fenêtre partagée "pets") : on utilise la dernière
+/// position que React nous a envoyée pendant le glissement (p.drag_x/
+/// drag_y, voir pin_drag_at) à la place de win.outer_position().
 fn finish_drag(app: &tauri::AppHandle, label: &str, p: &Pinned, a: &Area) {
-    let Some(win) = app.get_webview_window(label) else {
-        return;
+    let is_main = label == "main";
+    let win = if is_main { app.get_webview_window(label) } else { None };
+    let (drop_x, drop_y) = if is_main {
+        let Some(win) = &win else { return };
+        let Ok(pos) = win.outer_position() else { return };
+        (pos.x as f64, pos.y as f64)
+    } else {
+        (p.drag_x, p.drag_y)
     };
-    let Ok(pos) = win.outer_position() else {
-        return;
-    };
-    let (edge, offset) = snap(a, p, pos.x as f64, pos.y as f64);
+
+    let (edge, offset) = snap(a, p, drop_x, drop_y);
     let placed = Pinned {
         edge,
         offset,
@@ -400,7 +452,6 @@ fn finish_drag(app: &tauri::AppHandle, label: &str, p: &Pinned, a: &Area) {
         ..p.clone()
     };
     let (fx, fy) = window_pos(a, &placed);
-    let drop_y = pos.y as f64;
     let start_fall = p.ground_only && (fy - drop_y) > FALL_MIN_DISTANCE_PX;
 
     if let Ok(mut map) = PINNED.lock() {
@@ -423,27 +474,55 @@ fn finish_drag(app: &tauri::AppHandle, label: &str, p: &Pinned, a: &Area) {
         }
     }
 
-    if start_fall {
-        // L'horizontale est déjà la bonne (l'offset en dépend) : on la fixe
-        // tout de suite, seule la verticale s'anime ensuite, tick par tick
-        // (tick_fall, appelé depuis tick_pinned).
-        let _ = win.set_position(tauri::PhysicalPosition::new(fx.round() as i32, pos.y));
+    if is_main {
+        if let Some(win) = &win {
+            if start_fall {
+                let _ = win.set_position(tauri::PhysicalPosition::new(fx.round() as i32, drop_y.round() as i32));
+            } else {
+                place_window(win, a, &placed);
+            }
+        }
+        let _ = app.emit_to(
+            label,
+            "pet-placed",
+            serde_json::json!({
+                "edge": edge.as_str(),
+                "offset": offset,
+                "size": p.size,
+                "dragged": true
+            }),
+        );
     } else {
-        place_window(&win, a, &placed);
+        // On prévient tout de suite la fenêtre partagée (au lieu d'attendre
+        // jusqu'à 60ms le prochain "pets-tick") : React suivait sa propre
+        // position pendant le glissement (voir pin_drag_at) et doit recaler
+        // pile sur le point de chute que Rust a choisi (accroché au bord +
+        // marge, voir snap/window_pos), sans saut visible.
+        let (imm_x, imm_y) = if start_fall { (fx, drop_y) } else { (fx, fy) };
+        let (lx, ly) = local_xy(a, imm_x, imm_y);
+        // "offset" en plus de x/y : React n'a besoin que d'une position à
+        // l'écran pour l'affichage, mais mémorise le placement (voir
+        // savePlacement côté React) sous la forme edge/offset/size, comme
+        // pour "main" — pour rester compatible avec getPlacement au
+        // prochain lancement d'Eggs (offset le long du bord bas), pas de
+        // conversion x→offset à réinventer côté React.
+        let _ = app.emit_to(
+            "pets",
+            "pet-placed",
+            serde_json::json!({
+                "id": label, "x": lx, "y": ly, "size": p.size, "offset": offset, "falling": start_fall
+            }),
+        );
     }
-    let _ = app.emit_to(
-        label,
-        "pet-placed",
-        serde_json::json!({
-            "edge": edge.as_str(),
-            "offset": offset,
-            "size": p.size,
-            "dragged": true
-        }),
-    );
 }
 
-/// Zone de détection et clics pour chaque pet d'ami épinglé.
+/// Zone de détection et clics pour mon pet ("main") et pour chaque pet de
+/// l'herbe (ami épinglé, ou une de mes créatures posées). Depuis le
+/// 29/09/2026 (fenêtre partagée "pets", voir pin_pet/setup_pets), seule
+/// "main" garde une vraie fenêtre OS à soi ; pour tous les autres, cette
+/// fonction ne fait plus que calculer où ils en sont et regrouper le tout
+/// dans UN SEUL événement ("pets-tick") envoyé à la fenêtre partagée, au
+/// lieu de déplacer autant de fenêtres que de créatures.
 fn tick_pinned(
     app: &tauri::AppHandle,
     a: &Area,
@@ -456,9 +535,20 @@ fn tick_pinned(
         Ok(map) => map.iter().map(|(k, v)| (k.clone(), v.clone())).collect(),
         Err(_) => return,
     };
-    runtime.retain(|k, _| snapshot.iter().any(|(l, _)| l == k));
+    // Seules "main" (sa vraie fenêtre) et "pets" (la fenêtre partagée, voir
+    // plus bas) ont encore un état de survol à retenir d'un tick à l'autre.
+    runtime.retain(|k, _| k == "main" || k == "pets");
+
+    // Vrai dès que la souris survole N'IMPORTE LEQUEL des pets de l'herbe
+    // actifs : la fenêtre partagée n'a qu'un seul état cliquable possible
+    // (contrairement à avant, où chaque pet avait sa propre fenêtre à
+    // basculer individuellement).
+    let mut ground_over = false;
+    let mut ground_pets: Vec<serde_json::Value> = Vec::new();
 
     for (label, mut p) in snapshot {
+        let is_main = label == "main";
+
         // En cours de glissement : on attend que la souris soit relâchée.
         if p.dragging {
             if p.drag_since.elapsed() > Duration::from_millis(200) && !left_button_down() {
@@ -467,30 +557,36 @@ fn tick_pinned(
             continue;
         }
 
-        // En train de tomber jusqu'à l'herbe (voir finish_drag) : on anime la
-        // fenêtre elle-même, pas la peine de faire le reste (clics, zone...)
-        // tant qu'elle n'est pas posée.
+        // En train de tomber jusqu'à l'herbe (voir finish_drag) : pas la
+        // peine de faire le reste (clics, balade...) tant qu'elle n'est pas
+        // posée.
         if p.falling {
-            tick_fall(app, &label, &mut p);
+            tick_fall(&mut p);
             if let Ok(mut map) = PINNED.lock() {
                 if let Some(entry) = map.get_mut(&label) {
                     entry.falling = p.falling;
-                    entry.fall_from_y = p.fall_from_y;
-                    entry.fall_target_y = p.fall_target_y;
-                    entry.fall_x = p.fall_x;
-                    entry.fall_start = p.fall_start;
                     entry.wander_target = p.wander_target;
                     entry.wander_resume_at = p.wander_resume_at;
                 }
             }
+            let (fx, fy) = fall_position(&p);
+            if is_main {
+                if let Some(win) = app.get_webview_window(&label) {
+                    let _ = win.set_position(tauri::PhysicalPosition::new(fx.round() as i32, fy.round() as i32));
+                }
+            } else {
+                let (lx, ly) = local_xy(a, fx, fy);
+                ground_pets.push(serde_json::json!({
+                    "id": label, "x": lx, "y": ly, "size": p.size, "walking": false
+                }));
+            }
             continue;
         }
 
-        // Balade autonome sur l'herbe (amis posés au sol, chat fermé) : fait
-        // avancer p.offset et déplace vraiment la fenêtre, puis on répercute
-        // le nouvel état dans PINNED (tick_pinned travaille sur une copie).
+        // Balade autonome sur l'herbe (chat fermé) : fait avancer p.offset.
         if p.ground_only && !p.panel_open {
-            tick_wander(app, &label, &mut p, a);
+            let (was_walking, was_left) = (p.walking, p.walk_left);
+            tick_wander(&mut p, a);
             if let Ok(mut map) = PINNED.lock() {
                 if let Some(entry) = map.get_mut(&label) {
                     entry.offset = p.offset;
@@ -500,44 +596,90 @@ fn tick_pinned(
                     entry.walk_left = p.walk_left;
                 }
             }
+            // "main" prévient sa fenêtre par un événement dédié, comme avant
+            // (voir App.tsx : "pet-walk") — les pets de l'herbe, eux, portent
+            // déjà walking/walkLeft dans le "pets-tick" envoyé plus bas, pas
+            // besoin d'un événement séparé.
+            if is_main && (p.walking != was_walking || p.walk_left != was_left) {
+                let _ = app.emit_to(
+                    label.as_str(),
+                    "pet-walk",
+                    serde_json::json!({ "walking": p.walking, "dir": if p.walk_left { "left" } else { "right" } }),
+                );
+            }
         }
 
         let r = pet_rect(a, &p);
-        let entry = runtime.entry(label.clone()).or_insert((false, None));
-
-        // Le pet apparaît quand la souris touche son bord, repart quand elle s'éloigne
-        // — sauf sur l'herbe, où il vit sa vie en permanence, sans attendre la souris.
-        let next = if p.ground_only {
-            true
-        } else if entry.0 {
-            near_edge(a, p.edge, r, x, y, STAY_WIDTH_PX * s, STAY_MARGIN_PX * s) || (p.panel_open && in_window(a, &p, x, y, 60.0 * s))
-        } else {
-            near_edge(a, p.edge, r, x, y, TRIGGER_EDGE_PX * s, TRIGGER_EXTRA_TOP_PX * s)
-        };
-        if next != entry.0 {
-            entry.0 = next;
-            let _ = app.emit_to(label.as_str(), "zone-changed", next);
-        }
-
-        // Clics : la fenêtre est cliquable seulement sur le pet, quand il est là.
         let over = p.active && ((x >= r.0 && x < r.2 && y >= r.1 && y < r.3) || over_rects(a, &p, x, y));
-        let want_ignore = !over;
-        if entry.1 != Some(want_ignore) {
-            if let Some(w) = app.get_webview_window(&label) {
-                let _ = w.set_ignore_cursor_events(want_ignore);
+
+        if is_main {
+            let entry = runtime.entry(label.clone()).or_insert((false, None));
+            // Le pet apparaît quand la souris touche son bord, repart quand
+            // elle s'éloigne — sauf sur l'herbe, où il vit sa vie en
+            // permanence, sans attendre la souris.
+            let next = if p.ground_only {
+                true
+            } else if entry.0 {
+                near_edge(a, p.edge, r, x, y, STAY_WIDTH_PX * s, STAY_MARGIN_PX * s)
+                    || (p.panel_open && in_window(a, &p, x, y, 60.0 * s))
+            } else {
+                near_edge(a, p.edge, r, x, y, TRIGGER_EDGE_PX * s, TRIGGER_EXTRA_TOP_PX * s)
+            };
+            if next != entry.0 {
+                entry.0 = next;
+                let _ = app.emit_to(label.as_str(), "zone-changed", next);
             }
-            entry.1 = Some(want_ignore);
+            let want_ignore = !over;
+            if entry.1 != Some(want_ignore) {
+                if let Some(w) = app.get_webview_window(&label) {
+                    let _ = w.set_ignore_cursor_events(want_ignore);
+                }
+                entry.1 = Some(want_ignore);
+            }
+            if let Some(win) = app.get_webview_window(&label) {
+                place_window(&win, a, &p);
+            }
+        } else {
+            // Toujours visible (voir ci-dessus) : rien à surveiller côté
+            // zone, juste sa position et si le clic doit passer ou pas —
+            // React se déclare lui-même "dans la zone" dès qu'il monte
+            // (voir pet/GroundPet.tsx), comme déjà le cas avant le
+            // 29/09/2026 pour les mêmes raisons (voir ce fichier).
+            if over {
+                ground_over = true;
+            }
+            let (wx, wy) = window_pos(a, &p);
+            let (lx, ly) = local_xy(a, wx, wy);
+            ground_pets.push(serde_json::json!({
+                "id": label, "x": lx, "y": ly, "size": p.size,
+                "walking": p.walking, "walkLeft": p.walk_left
+            }));
         }
     }
+
+    // Une seule bascule pour toute la fenêtre partagée (au lieu d'une par
+    // pet avant le 29/09/2026) : cliquable dès que la souris survole
+    // n'importe lequel des pets de l'herbe, traversée par les clics sinon.
+    let want_ignore = !ground_over;
+    let ground_entry = runtime.entry("pets".to_string()).or_insert((false, None));
+    if ground_entry.1 != Some(want_ignore) {
+        if let Some(w) = app.get_webview_window("pets") {
+            let _ = w.set_ignore_cursor_events(want_ignore);
+        }
+        ground_entry.1 = Some(want_ignore);
+    }
+
+    let _ = app.emit_to("pets", "pets-tick", serde_json::json!({ "pets": ground_pets }));
 }
 
-/// Fait avancer un ami « posé sur l'herbe » vers une destination choisie au
-/// hasard, marche jusqu'à l'atteindre, s'arrête un moment, puis repart —
-/// pour qu'il ait vraiment l'air de vivre sa vie sur la bande de gazon.
-/// Déplace directement la fenêtre (p.offset + place_window) : contrairement
-/// au glissement à la souris, il n'y a pas besoin que l'interface soit au
-/// courant de la position exacte à chaque instant.
-fn tick_wander(app: &tauri::AppHandle, label: &str, p: &mut Pinned, a: &Area) {
+/// Fait avancer un pet de l'herbe (ami ou créature à moi) vers une
+/// destination choisie au hasard, marche jusqu'à l'atteindre, s'arrête un
+/// moment, puis repart — pour qu'il ait vraiment l'air de vivre sa vie sur
+/// la bande de gazon. Pure mise à jour d'état depuis le 29/09/2026 (juste
+/// p.offset/walking/walk_left) : ne touche plus aucune fenêtre elle-même,
+/// c'est tick_pinned qui s'en charge après coup (pour "main" comme pour un
+/// pet de l'herbe, chacun à sa façon).
+fn tick_wander(p: &mut Pinned, a: &Area) {
     let now = Instant::now();
     let width = (a.right - a.left).max(1.0);
 
@@ -545,7 +687,7 @@ fn tick_wander(app: &tauri::AppHandle, label: &str, p: &mut Pinned, a: &Area) {
         Some(t) => t,
         None => {
             if now < p.wander_resume_at {
-                set_walking(app, label, p, false);
+                p.walking = false;
                 return; // encore en pause
             }
             // Repart : une nouvelle destination, pas trop loin, sans sortir
@@ -566,55 +708,23 @@ fn tick_wander(app: &tauri::AppHandle, label: &str, p: &mut Pinned, a: &Area) {
         p.wander_target = None;
         p.wander_resume_at =
             now + Duration::from_secs_f64(rand_range(WANDER_PAUSE_MIN_S, WANDER_PAUSE_MAX_S));
-        set_walking(app, label, p, false);
+        p.walking = false;
     } else {
         p.offset = if dir_left { p.offset - step } else { p.offset + step };
         p.walk_left = dir_left;
-        set_walking(app, label, p, true);
-    }
-
-    if let Some(win) = app.get_webview_window(label) {
-        place_window(&win, a, p);
+        p.walking = true;
     }
 }
 
-/// Prévient l'interface (marche / arrêt, et dans quel sens) — seulement
-/// quand ça change, pour ne pas la bombarder d'événements identiques à
-/// chaque tick (toutes les 60ms).
-fn set_walking(app: &tauri::AppHandle, label: &str, p: &mut Pinned, walking: bool) {
-    if p.walking == walking {
-        return;
-    }
-    p.walking = walking;
-    let _ = app.emit_to(
-        label,
-        "pet-walk",
-        serde_json::json!({
-            "walking": walking,
-            "dir": if p.walk_left { "left" } else { "right" }
-        }),
-    );
-}
-
-/// Anime la chute d'une créature de l'herbe qu'on vient de lâcher plus haut
-/// sur l'écran (voir finish_drag) : seule la verticale bouge, de fall_from_y
-/// jusqu'à fall_target_y (le gazon), l'horizontale (fall_x) ne change pas.
-/// Accélère comme une vraie chute (ease-in) plutôt qu'une vitesse constante.
-fn tick_fall(app: &tauri::AppHandle, label: &str, p: &mut Pinned) {
+/// Avance l'horloge d'une chute (voir finish_drag) et bascule p.falling à
+/// false une fois arrivée — pure mise à jour d'état depuis le 29/09/2026,
+/// voir fall_position juste après pour la position physique correspondante
+/// à un instant donné (utilisée séparément par tick_pinned).
+fn tick_fall(p: &mut Pinned) {
     let elapsed = p.fall_start.elapsed().as_secs_f64();
     let dist = (p.fall_target_y - p.fall_from_y).abs();
     let duration = (dist / FALL_SPEED_PX_S).max(FALL_MIN_DURATION_S);
     let t = (elapsed / duration).min(1.0);
-    let eased = t * t;
-    let y = p.fall_from_y + (p.fall_target_y - p.fall_from_y) * eased;
-
-    if let Some(win) = app.get_webview_window(label) {
-        let _ = win.set_position(tauri::PhysicalPosition::new(
-            p.fall_x.round() as i32,
-            y.round() as i32,
-        ));
-    }
-
     if t >= 1.0 {
         p.falling = false;
         p.wander_target = None;
@@ -625,9 +735,24 @@ fn tick_fall(app: &tauri::AppHandle, label: &str, p: &mut Pinned) {
     }
 }
 
-/// Surveille la souris pour chaque pet épinglé (le mien, et celui de chaque
-/// ami) : prévient quand elle entre / sort de sa zone, et rend sa fenêtre
-/// cliquable seulement sur le pet et son panneau.
+/// Position physique d'une créature en train de tomber (voir tick_fall),
+/// pour l'instant présent : ease-in entre fall_from_y et fall_target_y,
+/// l'horizontale (fall_x) ne bouge pas. Accélère comme une vraie chute
+/// plutôt qu'une vitesse constante.
+fn fall_position(p: &Pinned) -> (f64, f64) {
+    let elapsed = p.fall_start.elapsed().as_secs_f64();
+    let dist = (p.fall_target_y - p.fall_from_y).abs();
+    let duration = (dist / FALL_SPEED_PX_S).max(FALL_MIN_DURATION_S);
+    let t = (elapsed / duration).min(1.0);
+    let eased = t * t;
+    let y = p.fall_from_y + (p.fall_target_y - p.fall_from_y) * eased;
+    (p.fall_x, y)
+}
+
+/// Surveille la souris pour mon pet et pour la fenêtre partagée des pets de
+/// l'herbe : prévient quand elle entre / sort de la zone de "main", et rend
+/// cliquable seulement ce qu'il faut (le pet et son panneau pour "main",
+/// n'importe lequel des pets de l'herbe pour la fenêtre "pets").
 fn start_cursor_watcher(app: tauri::AppHandle) {
     thread::spawn(move || {
         let mut runtime: HashMap<String, (bool, Option<bool>)> = HashMap::new();
@@ -689,6 +814,8 @@ fn place_me(app: tauri::AppHandle, edge: String, offset: f64, size: f64, ground:
             fall_target_y: 0.0,
             fall_x: 0.0,
             fall_start: Instant::now(),
+            drag_x: 0.0,
+            drag_y: 0.0,
         });
         entry.side_only = !ground;
         entry.ground_only = ground;
@@ -719,106 +846,125 @@ fn place_me(app: tauri::AppHandle, edge: String, offset: f64, size: f64, ground:
     }
 }
 
-/// Crée la fenêtre du pet épinglé d'un ami.
+/// Ajoute un pet à l'herbe (ami épinglé, ou une de mes créatures posée
+/// depuis « Ma collection ») : une entrée dans PINNED, plus rien d'autre.
+///
+/// Avant le 29/09/2026, chaque pet posé sur l'herbe (amis ET mes propres
+/// créatures) avait sa propre fenêtre Windows/WebView2 — jusqu'à 3 de
+/// chaque, plafond fixé pour rester raisonnable en mémoire. Antoine a
+/// demandé de lever cette limite (49 créatures dehors en même temps, voire
+/// plus) : impossible de continuer avec une vraie fenêtre par créature (49
+/// fenêtres WebView2, ce serait des gigaoctets de RAM et un bureau qui rame).
+/// Toutes les créatures de l'herbe (amis + collection, PAS ma créature
+/// principale "main" : elle garde sa propre fenêtre, une seule, pas de souci
+/// d'échelle) vivent donc maintenant dans UNE SEULE fenêtre partagée,
+/// "pets" (voir setup_pets), créée une fois pour toutes au démarrage. Cette
+/// fonction n'a donc plus qu'à ajouter une entrée dans la table PINNED —
+/// c'est tick_pinned qui, à chaque tick, calcule la position de chaque
+/// créature et l'envoie à React (voir emit_pets_tick) pour que la fenêtre
+/// partagée la dessine au bon endroit.
 #[tauri::command]
-async fn pin_pet(
-    app: tauri::AppHandle,
-    id: String,
-    edge: String,
-    offset: f64,
-    size: f64,
-    drag: bool,
-) -> Result<(), String> {
+fn pin_pet(id: String, offset: f64, size: f64) {
     let label = format!("pin-{id}");
-    if app.get_webview_window(&label).is_some() {
-        return Ok(());
-    }
-    let a = area_now().ok_or("zone d'affichage inconnue")?;
-    // Les amis vivent désormais toujours sur l'herbe (bord bas) : le bord
-    // éventuellement mémorisé par l'interface (anciennes valeurs gauche /
-    // haut / droite) est ignoré, seul l'offset (position horizontale) sert.
-    let _ = edge;
-    // drag = true : on vient de glisser cette créature depuis « Ma
-    // collection » (voir CustomizeScreen.tsx) — la fenêtre doit tout de
-    // suite suivre la souris, comme si on venait de commencer à la
-    // déplacer (voir pin_drag_start), au lieu d'apparaître à l'offset
-    // donné puis d'attendre un glissement séparé.
-    let p = Pinned {
-        edge: Edge::Bottom,
-        offset: clamp(offset, 0.0, 1.0),
-        size: clamp(size, MIN_SIZE, MAX_SIZE),
-        active: false,
-        dragging: drag,
-        drag_since: Instant::now(),
-        panel_open: false,
-        rects: Vec::new(),
-        side_only: false,
-        ground_only: true,
-        wander_target: None,
-        // Petit délai avant de commencer à se balader, pour ne pas voir
-        // tous les amis se mettre en marche exactement en même temps.
-        wander_resume_at: Instant::now() + Duration::from_secs_f64(rand_range(0.5, 3.0)),
-        walking: false,
-        walk_left: true,
-        falling: false,
-        fall_from_y: 0.0,
-        fall_target_y: 0.0,
-        fall_x: 0.0,
-        fall_start: Instant::now(),
-    };
     if let Ok(mut map) = PINNED.lock() {
-        map.insert(label.clone(), p.clone());
+        if map.contains_key(&label) {
+            return; // déjà là (ex: React qui republie après une reconnexion)
+        }
+        map.insert(
+            label.clone(),
+            Pinned {
+                edge: Edge::Bottom,
+                offset: clamp(offset, 0.0, 1.0),
+                size: clamp(size, MIN_SIZE, MAX_SIZE),
+                active: false,
+                dragging: false,
+                drag_since: Instant::now(),
+                panel_open: false,
+                rects: Vec::new(),
+                side_only: false,
+                ground_only: true,
+                wander_target: None,
+                // Petit délai avant de commencer à se balader, pour ne pas voir
+                // tous les amis se mettre en marche exactement en même temps.
+                wander_resume_at: Instant::now() + Duration::from_secs_f64(rand_range(0.5, 3.0)),
+                walking: false,
+                walk_left: true,
+                falling: false,
+                fall_from_y: 0.0,
+                fall_target_y: 0.0,
+                fall_x: 0.0,
+                fall_start: Instant::now(),
+                drag_x: 0.0,
+                drag_y: 0.0,
+            },
+        );
     }
-
-    let win = WebviewWindowBuilder::new(&app, &label, WebviewUrl::App("index.html".into()))
-        .title("Eggs")
-        .inner_size(WIN_PIN, WIN_PIN)
-        .decorations(false)
-        .transparent(true)
-        .always_on_top(true)
-        .skip_taskbar(true)
-        .resizable(false)
-        .shadow(false)
-        .focused(false)
-        .visible(false)
-        .build()
-        .map_err(|e| e.to_string())?;
-
-    place_window(&win, &a, &p);
-    let _ = win.set_ignore_cursor_events(true); // caché au départ : les clics traversent
-    let _ = win.show();
-    if drag {
-        // Le clic (mousedown) qui a lancé ce glissement est toujours
-        // maintenu à cet instant (on l'a suivi en continu depuis « Ma
-        // collection » jusqu'ici) : Windows accepte donc de démarrer le
-        // déplacement natif de CETTE fenêtre-ci, même si le geste a commencé
-        // ailleurs. À la souris relâchée, finish_drag (tick_pinned) prend le
-        // relais comme pour un glissement classique.
-        let _ = win.start_dragging();
-    }
-    Ok(())
 }
 
-/// Ferme la fenêtre du pet épinglé d'un ami.
+/// Retire un pet de l'herbe (ami détaché, ou une de mes créatures rangée) :
+/// juste une entrée en moins dans PINNED — plus de fenêtre à fermer depuis
+/// le 29/09/2026 (voir pin_pet), la fenêtre partagée "pets" ne disparaît
+/// jamais elle-même, elle arrête simplement de dessiner cette créature au
+/// prochain tick.
 #[tauri::command]
-fn unpin_pet(app: tauri::AppHandle, id: String) {
+fn unpin_pet(id: String) {
     let label = format!("pin-{id}");
     if let Ok(mut map) = PINNED.lock() {
         map.remove(&label);
     }
-    if let Some(w) = app.get_webview_window(&label) {
-        let _ = w.close();
-    }
 }
 
-/// Un pet épinglé est à l'écran ou caché.
+/// Un pet épinglé est à l'écran ou caché. Appelé aussi par la fenêtre
+/// "main" avec label = "main" pour MA créature principale : elle A bien
+/// une entrée dans PINNED (créée par place_me), c'est même p.active qui
+/// décide si SA fenêtre accepte les clics du tout (voir la boucle de tick
+/// plus bas, "over = p.active && …") — il ne faut donc surtout pas
+/// s'arrêter après avoir mis à jour MAIN_PET_ACTIVE (utilisé, lui,
+/// seulement par self_pin_active pour la bulle "vient d'écrire") sous
+/// peine de rendre le bouton définitivement incliquable.
 #[tauri::command]
 fn pin_set_active(label: String, active: bool) {
+    if label == "main" {
+        MAIN_PET_ACTIVE.store(active, Ordering::Relaxed);
+    }
     if let Ok(mut map) = PINNED.lock() {
         if let Some(p) = map.get_mut(&label) {
             p.active = active;
         }
     }
+}
+
+/// Le pet épinglé de cet ami est-il actuellement à l'écran (pas caché,
+/// pas en mode réunion / plein écran) ? Utilisé par la fenêtre "toast" pour
+/// ne pas doubler sa bulle de dialogue (voir notifications.ts côté React) :
+/// si on la voit déjà sur son pet, pas besoin de la carte "nouveau message"
+/// en plus. `false` aussi si son pet n'est pas épinglé du tout.
+#[tauri::command]
+fn pin_is_active(friend_id: String) -> bool {
+    let label = format!("pin-{friend_id}");
+    PINNED
+        .lock()
+        .ok()
+        .and_then(|map| map.get(&label).map(|p| p.active))
+        .unwrap_or(false)
+}
+
+/// Une de MES PROPRES créatures est-elle actuellement à l'écran ? Soit ma
+/// créature principale (fenêtre "main", voir MAIN_PET_ACTIVE), soit un
+/// extra épinglé depuis « Ma collection » (voir selfPinId côté React : ces
+/// fenêtres ont toujours un label "pin-self-…"). Même idée que
+/// pin_is_active mais pour moi plutôt que pour un ami : si une de mes
+/// créatures est déjà visible, c'est elle qui porte la bulle "vient
+/// d'écrire" à la place de la carte.
+#[tauri::command]
+fn self_pin_active() -> bool {
+    if MAIN_PET_ACTIVE.load(Ordering::Relaxed) {
+        return true;
+    }
+    PINNED
+        .lock()
+        .map(|map| map.iter().any(|(label, p)| label.starts_with("pin-self-") && p.active))
+        .unwrap_or(false)
 }
 
 /// Début d'un glissement (déplacement) d'un pet épinglé.
@@ -828,6 +974,32 @@ fn pin_drag_start(label: String) {
         if let Some(p) = map.get_mut(&label) {
             p.dragging = true;
             p.drag_since = Instant::now();
+        }
+    }
+}
+
+/// Position d'un pet de l'herbe PENDANT un glissement (ami ou créature à
+/// moi) : depuis le 29/09/2026 (fenêtre partagée "pets", voir pin_pet), il
+/// n'y a plus de vraie fenêtre OS à faire suivre la souris — c'est React qui
+/// déplace lui-même l'élément à l'écran (voir pet/GroundPet.tsx) pour un
+/// retour instantané, et nous informe en direct (à chaque pointermove) pour
+/// que finish_drag (tick_pinned, une fois le bouton relâché) sache où le
+/// poser. `x`/`y` : coin haut gauche de la boîte 800×800 du pet (même repère
+/// que window_pos), en pixels LOGIQUES relatifs au coin haut gauche du
+/// moniteur (voir Area.mon_left/mon_top) — on les convertit ici en pixels
+/// physiques, seul repère utilisé côté Rust (Area, snap, pet_rect...).
+/// Ignoré pour "main" : elle garde son vrai glissement de fenêtre natif
+/// (voir App.tsx : onPress appelle encore startDragging()), jamais cette
+/// commande.
+#[tauri::command]
+fn pin_drag_at(label: String, x: f64, y: f64) {
+    let Some(a) = area_now() else {
+        return;
+    };
+    if let Ok(mut map) = PINNED.lock() {
+        if let Some(p) = map.get_mut(&label) {
+            p.drag_x = a.mon_left + x * a.scale;
+            p.drag_y = a.mon_top + y * a.scale;
         }
     }
 }
@@ -843,9 +1015,10 @@ fn pin_set_ui(label: String, panel_open: bool, rects: Vec<[f64; 4]>) {
     }
 }
 
-/// Change la taille d'un pet épinglé.
+/// Change la taille d'un pet épinglé (molette sur le pet).
 #[tauri::command]
 fn pin_resize(app: tauri::AppHandle, label: String, size: f64) {
+    let is_main = label == "main";
     let Some(a) = area_now() else {
         return;
     };
@@ -861,18 +1034,27 @@ fn pin_resize(app: tauri::AppHandle, label: String, size: f64) {
             None => return,
         }
     };
-    if let Some(win) = app.get_webview_window(&label) {
-        place_window(&win, &a, &placed);
+    // "main" garde sa propre fenêtre (voir place_me) : on la redimensionne
+    // et on prévient l'interface tout de suite. Un pet de l'herbe (ami ou
+    // créature à moi), lui, n'a plus de fenêtre à lui depuis le 29/09/2026
+    // (voir pin_pet) — inutile de rien renvoyer, React connaît déjà la
+    // nouvelle taille (mise à jour optimiste, voir PinnedWindow.tsx : elle
+    // ne fait qu'informer Rust pour que la physique (bord, chute...) reste
+    // cohérente) et le prochain tick (pets-tick) suffit à tout resynchroniser.
+    if is_main {
+        if let Some(win) = app.get_webview_window(&label) {
+            place_window(&win, &a, &placed);
+        }
+        let _ = app.emit_to(
+            label.as_str(),
+            "pet-placed",
+            serde_json::json!({
+                "edge": placed.edge.as_str(),
+                "offset": placed.offset,
+                "size": placed.size
+            }),
+        );
     }
-    let _ = app.emit_to(
-        label.as_str(),
-        "pet-placed",
-        serde_json::json!({
-            "edge": placed.edge.as_str(),
-            "offset": placed.offset,
-            "size": placed.size
-        }),
-    );
 }
 
 /// Montrer ou cacher l'herbe (réglage « Afficher le sol »).
@@ -946,6 +1128,14 @@ fn set_autostart(app: tauri::AppHandle, on: bool) {
 // Hauteur (pixels logiques) de la bande d'herbe posée sur la barre des tâches.
 const GROUND_H: f64 = 12.0;
 
+// ---- Petite carte de notification maison (nouveaux messages) ----
+// Taille et marge de coin pour la fenêtre "toast" (voir setup_toast /
+// src/pet/ToastWindow.tsx) : posée en bas-droite de la zone de travail,
+// comme une notification, mais dessinée par nous plutôt que par Windows.
+const TOAST_W: f64 = 168.0;
+const TOAST_H: f64 = 34.0;
+const TOAST_MARGIN: f64 = 16.0;
+
 /// Crée la bande d'herbe : une fenêtre décorative, sans interaction, posée
 /// sur toute la largeur de l'écran, collée juste au-dessus de la barre des
 /// tâches (et si possible par-dessus).
@@ -954,7 +1144,7 @@ fn setup_ground(app: &tauri::App, mon: &tauri::Monitor, area: &Area) -> tauri::R
     let size = mon.size();
 
     let win = WebviewWindowBuilder::new(app, "ground", WebviewUrl::App("index.html".into()))
-        .title("Eggs")
+        .title("Egg")
         .inner_size(size.width as f64 / scale, GROUND_H)
         .decorations(false)
         .transparent(true)
@@ -998,6 +1188,110 @@ fn keep_ground_on_top(win: tauri::WebviewWindow) {
         let _ = win.set_always_on_top(true);
         thread::sleep(Duration::from_millis(500));
     });
+}
+
+/// Fenêtre UNIQUE et PARTAGÉE pour toutes les créatures posées sur l'herbe
+/// (amis épinglés, créatures de ma collection) — depuis le 29/09/2026,
+/// remplace l'ancien système d'une fenêtre WebviewWindow par créature (voir
+/// l'historique de pin_pet), qui plafonnait le nombre de créatures affichées
+/// (chaque fenêtre coûte en RAM/CPU/composition GPU côté WebView2). Couvre
+/// le moniteur entier, en coordonnées PHYSIQUES à partir de son coin
+/// haut-gauche (mon.position()) — c'est ce repère que local_xy() utilise
+/// pour convertir la position "monde" de chaque créature (calculée par les
+/// fonctions géométriques pures, inchangées) en position LOCALE à cette
+/// fenêtre, celle que React utilise pour du CSS position:absolute (voir
+/// pet/GroundPet.tsx). Cliquable à travers par défaut ; tick_pinned bascule
+/// set_ignore_cursor_events une seule fois par tick pour toute la fenêtre,
+/// selon qu'une créature quelconque est survolée (ground_over) — plus un
+/// bouton par créature à surveiller individuellement.
+fn setup_pets(app: &tauri::App, mon: &tauri::Monitor, _area: &Area) -> tauri::Result<()> {
+    // NOTE (29/09/2026) : la fenêtre "pets" doit être listée dans
+    // src-tauri/capabilities/default.json ("windows": [...]), sinon Tauri lui
+    // refuse silencieusement tout invoke()/listen() (aucune erreur visible,
+    // juste rien qui se passe). Si tu vois ce commentaire recompiler, c'est
+    // qu'un simple changement JSON dans capabilities/ ne suffit PAS à lui
+    // seul à déclencher un `cargo build` (generate_context!() lit ce fichier
+    // à la compilation, mais Cargo ne surveille pas son contenu comme une
+    // dépendance) : il faut toucher un fichier .rs pour forcer la recompilation.
+    let scale = mon.scale_factor();
+    let size = mon.size();
+
+    let win = WebviewWindowBuilder::new(app, "pets", WebviewUrl::App("index.html".into()))
+        .title("Egg")
+        .inner_size(size.width as f64 / scale, size.height as f64 / scale)
+        .decorations(false)
+        .transparent(true)
+        .background_color(tauri::webview::Color(0, 0, 0, 0))
+        .always_on_top(true)
+        .skip_taskbar(true)
+        .resizable(false)
+        .shadow(false)
+        .focused(false)
+        .visible(false)
+        .build()?;
+
+    place_pets(&win, mon);
+    // Comme pour l'herbe : rien n'est cliquable tant qu'aucune créature n'est
+    // survolée, voir tick_pinned qui rebascule ça à chaque tick.
+    win.set_ignore_cursor_events(true)?;
+    win.show()?;
+    Ok(())
+}
+
+/// Replace/redimensionne la fenêtre partagée "pets" sur le moniteur entier
+/// (coin haut-gauche PHYSIQUE du moniteur, pas la zone de travail — les
+/// créatures peuvent se déplacer n'importe où au sol, y compris sous la
+/// barre des tâches visuellement si besoin ; seule leur position verticale
+/// au repos est contrainte par area.bottom, comme avant).
+fn place_pets(win: &tauri::WebviewWindow, mon: &tauri::Monitor) {
+    let pos = mon.position();
+    let size = mon.size();
+    let _ = win.set_position(tauri::PhysicalPosition::new(pos.x, pos.y));
+    let _ = win.set_size(tauri::PhysicalSize::new(size.width, size.height));
+}
+
+/// Petite fenêtre dédiée à la carte "nouveau message" (voir
+/// src/pet/ToastWindow.tsx) : posée une fois pour toutes en bas-droite de
+/// l'écran, transparente et cliquable à travers, dans son propre esprit
+/// plutôt qu'une notification Windows classique. Comme pour les pets
+/// épinglés, la fenêtre reste "affichée" en permanence côté Rust — c'est le
+/// CSS, côté React, qui la montre ou la cache (transition douce, voir
+/// toast.css), pas Rust.
+fn setup_toast(app: &tauri::App, mon: &tauri::Monitor, area: &Area) -> tauri::Result<()> {
+    let win = WebviewWindowBuilder::new(app, "toast", WebviewUrl::App("index.html".into()))
+        .title("Egg")
+        .inner_size(TOAST_W, TOAST_H)
+        .decorations(false)
+        .transparent(true)
+        // Sans ça, Windows/WebView2 peint la fenêtre en noir opaque derrière
+        // la carte (on ne voit alors que le contour rectangulaire de la
+        // fenêtre) au lieu de vraiment laisser voir le bureau à travers.
+        .background_color(tauri::webview::Color(0, 0, 0, 0))
+        .always_on_top(true)
+        .skip_taskbar(true)
+        .resizable(false)
+        .shadow(false)
+        .focused(false)
+        .visible(false)
+        .build()?;
+
+    place_toast(&win, mon, area);
+    win.set_ignore_cursor_events(true)?;
+    win.show()?;
+    Ok(())
+}
+
+/// Coin bas-droit de la zone de travail (hors barre des tâches), avec une
+/// petite marge — l'emplacement habituel d'une notification.
+fn place_toast(win: &tauri::WebviewWindow, mon: &tauri::Monitor, area: &Area) {
+    let scale = mon.scale_factor();
+    let w = (TOAST_W * scale).round() as i32;
+    let h = (TOAST_H * scale).round() as i32;
+    let margin = (TOAST_MARGIN * scale).round() as i32;
+    let x = area.right as i32 - w - margin;
+    let y = area.bottom as i32 - h - margin;
+    let _ = win.set_position(tauri::PhysicalPosition::new(x, y));
+    let _ = win.set_size(tauri::PhysicalSize::new(w as u32, h as u32));
 }
 
 /// La fenêtre au premier plan couvre-t-elle tout l'écran (vidéo plein écran,
@@ -1058,14 +1352,17 @@ fn apply_visibility(app: &tauri::AppHandle) {
         let _ = if ground_visible { w.show() } else { w.hide() };
     }
 
-    let labels: Vec<String> = match PINNED.lock() {
-        Ok(map) => map.keys().cloned().collect(),
-        Err(_) => Vec::new(),
-    };
-    for label in labels {
-        if let Some(w) = app.get_webview_window(&label) {
-            let _ = if hide_all { w.hide() } else { w.show() };
-        }
+    // Mon pet ("main") garde sa propre fenêtre : inchangé.
+    if let Some(w) = app.get_webview_window("main") {
+        let _ = if hide_all { w.hide() } else { w.show() };
+    }
+
+    // Depuis le 29/09/2026, toutes les créatures posées sur l'herbe (amies ou
+    // à moi) vivent dans la fenêtre partagée "pets" (voir pin_pet/setup_pets)
+    // : un seul show/hide pour toutes, plus besoin d'itérer les entrées de
+    // PINNED une par une (elles n'ont plus de fenêtre individuelle).
+    if let Some(w) = app.get_webview_window("pets") {
+        let _ = if hide_all { w.hide() } else { w.show() };
     }
 }
 
@@ -1108,24 +1405,38 @@ fn start_area_watcher(app: tauri::AppHandle) {
         }
         area_set(new_area);
 
-        // Replace mon pet et les pets épinglés des amis, sauf ceux qu'on est
-        // justement en train de glisser (pour ne pas gêner l'utilisateur).
-        let snapshot: Vec<(String, Pinned)> = match PINNED.lock() {
-            Ok(map) => map.iter().map(|(k, v)| (k.clone(), v.clone())).collect(),
-            Err(_) => Vec::new(),
-        };
-        for (label, p) in snapshot {
-            if p.dragging {
-                continue;
-            }
-            if let Some(w) = app.get_webview_window(&label) {
-                place_window(&w, &new_area, &p);
+        // Replace mon pet ("main", seul à garder une vraie fenêtre OS à lui),
+        // sauf s'il est justement en train d'être glissé (pour ne pas gêner
+        // l'utilisateur). Les créatures posées sur l'herbe n'ont plus de
+        // fenêtre individuelle depuis le 29/09/2026 (voir pin_pet/
+        // setup_pets) : rien à faire pour elles ici, tick_pinned leur envoie
+        // déjà leur position à chaque tick via local_xy, qui se recalcule
+        // tout seul dès que area_now() change.
+        if let Ok(map) = PINNED.lock() {
+            if let Some(p) = map.get("main") {
+                if !p.dragging {
+                    if let Some(w) = app.get_webview_window("main") {
+                        place_window(&w, &new_area, p);
+                    }
+                }
             }
         }
 
         // Replace la bande d'herbe.
         if let Some(ground) = app.get_webview_window("ground") {
             place_ground(&ground, &mon, &new_area);
+        }
+
+        // Replace la carte de notification (coin bas-droit).
+        if let Some(toast) = app.get_webview_window("toast") {
+            place_toast(&toast, &mon, &new_area);
+        }
+
+        // Replace/redimensionne la fenêtre partagée des créatures de l'herbe
+        // sur le moniteur entier (voir setup_pets) : utile si la résolution
+        // ou l'agencement des moniteurs change en cours de route.
+        if let Some(pets) = app.get_webview_window("pets") {
+            place_pets(&pets, &mon);
         }
     });
 }
@@ -1147,14 +1458,18 @@ async fn check_for_update(app: tauri::AppHandle) {
     match updater.check().await {
         Ok(Some(update)) => {
             println!("mise à jour {} disponible, téléchargement…", update.version);
-            let mut downloaded = 0usize;
+            // Deux fonctions de progression séparées (une par « tick », une à la
+            // fin) : elles ne peuvent pas se partager une même variable classique
+            // (l'une l'incrémenterait pendant que l'autre la lit, refusé par le
+            // compilateur) — on se contente donc d'annoncer chaque paquet reçu,
+            // sans total cumulé.
             let result = update
                 .download_and_install(
                     |chunk, _total| {
-                        downloaded += chunk;
+                        println!("… {chunk} octets reçus");
                     },
                     || {
-                        println!("téléchargement terminé ({downloaded} octets)");
+                        println!("téléchargement terminé");
                     },
                 )
                 .await;
@@ -1173,7 +1488,7 @@ async fn check_for_update(app: tauri::AppHandle) {
 
 /// Icône dans la zone de notification, avec un menu « Quitter ».
 fn setup_tray(app: &tauri::App) -> tauri::Result<()> {
-    let quit = MenuItem::with_id(app, "quit", "Quitter Eggs", true, None::<&str>)?;
+    let quit = MenuItem::with_id(app, "quit", "Quitter Egg", true, None::<&str>)?;
     let autostart = CheckMenuItem::with_id(
         app,
         "autostart",
@@ -1220,7 +1535,7 @@ fn setup_tray(app: &tauri::App) -> tauri::Result<()> {
 
     TrayIconBuilder::new()
         .icon(app.default_window_icon().unwrap().clone())
-        .tooltip("Eggs")
+        .tooltip("Egg")
         .menu(&menu)
         .on_menu_event(|app, event| {
             if event.id.as_ref() == "autostart" {
@@ -1283,12 +1598,22 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
+        .plugin(tauri_plugin_fs::init())
+        // Lien de salon partageable (eggs://salon/<id>) : voir Cargo.toml et
+        // tauri.conf.json (plugins.deep-link). La navigation réelle (aperçu
+        // du salon) se fait côté React (App.tsx, via @tauri-apps/plugin-deep-link) ;
+        // ici on se contente de remettre la fenêtre au premier plan (voir
+        // plus bas, .setup()) si Eggs tournait déjà en arrière-plan.
+        .plugin(tauri_plugin_deep_link::init())
         .invoke_handler(tauri::generate_handler![
             place_me,
             pin_pet,
             unpin_pet,
             pin_set_active,
+            pin_is_active,
+            self_pin_active,
             pin_drag_start,
+            pin_drag_at,
             pin_resize,
             pin_set_ui,
             set_show_ground,
@@ -1297,7 +1622,10 @@ pub fn run() {
             get_auto_hide_fullscreen,
             set_auto_hide_fullscreen,
             get_autostart,
-            set_autostart
+            set_autostart,
+            list_capture_sources,
+            start_screen_capture,
+            stop_screen_capture
         ])
         .setup(|app| {
             let win = app
@@ -1333,6 +1661,8 @@ pub fn run() {
                 fall_target_y: 0.0,
                 fall_x: 0.0,
                 fall_start: Instant::now(),
+                drag_x: 0.0,
+                drag_y: 0.0,
             };
             place_window(&win, &area, &me);
             if let Ok(mut map) = PINNED.lock() {
@@ -1343,11 +1673,30 @@ pub fn run() {
             win.set_ignore_cursor_events(true)?;
 
             setup_ground(app, &mon, &area)?;
+            setup_toast(app, &mon, &area)?;
+            setup_pets(app, &mon, &area)?;
 
             start_cursor_watcher(app.handle().clone());
             start_area_watcher(app.handle().clone());
 
             setup_tray(app)?;
+
+            // Lien de salon partageable (eggs://salon/<id>, voir Cargo.toml
+            // et tauri.conf.json). Le lien peut arriver alors qu'Eggs tourne
+            // déjà en arrière-plan (fenêtre "main" cachée, pas de pet visible
+            // à l'écran) : on la remet au premier plan ici. La navigation
+            // (aperçu du salon) est gérée côté React (App.tsx), qui écoute le
+            // même événement via @tauri-apps/plugin-deep-link — rien d'autre
+            // à faire ici.
+            {
+                let handle = app.handle().clone();
+                app.deep_link().on_open_url(move |_event| {
+                    if let Some(win) = handle.get_webview_window("main") {
+                        let _ = win.show();
+                        let _ = win.set_focus();
+                    }
+                });
+            }
 
             // Vérifie une mise à jour au lancement, en tâche de fond (voir
             // check_for_update et UPDATING.md) — n'empêche pas l'appli de

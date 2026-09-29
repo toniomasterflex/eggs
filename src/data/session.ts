@@ -88,8 +88,8 @@ export async function login(username: string, password: string) {
   setSession({ token, user });
 }
 
-export async function register(username: string, password: string) {
-  const { token, user } = await api.register(username, password);
+export async function register(username: string, email: string, password: string) {
+  const { token, user } = await api.register(username, email, password);
   setSession({ token, user });
 }
 
@@ -112,10 +112,47 @@ export async function changePassword(current: string, next: string) {
   await api.changePassword(current, next);
 }
 
+/** Met à jour mes pseudos Discord/Steam affichés sur le profil et le
+ *  Répertoire (simple affichage, voir data/api.ts : ApiUser). Chaîne vide =
+ *  effacer le pseudo. */
+export async function updateProfileLinks(discord: string, steam: string) {
+  const user = await api.updateMe({ discord, steam });
+  updateSessionUser(user);
+}
+
+/** Mon statut « absent », réglé à la main (voir ApiUser.away) — indépendant
+ *  d'être connecté ou non. Toujours `false` tant qu'on ne l'a pas activé. */
+export function useMyAwayStatus(): boolean {
+  const s = useSession();
+  return s?.user.away ?? false;
+}
+
+/** Change mon statut « absent » (façon Slack/Discord, demande d'Antoine du
+ *  21/09/2026) — persisté côté serveur (voir PATCH /me/status), donc visible
+ *  par mes amis et dans les salons dès la prochaine synchro. */
+export async function setMyAwayStatus(away: boolean) {
+  const user = await api.setAwayStatus(away);
+  updateSessionUser(user);
+}
+
 /** Supprime définitivement mon compte, puis me déconnecte. */
 export async function deleteAccount(password: string) {
   await api.deleteAccount(password);
   setSession(null);
+}
+
+/** Email et son état de vérification (voir server/src/mail.ts) — pas dans
+ *  session.user (voir data/api.ts : ApiUser vs ApiMe, resté privé), donc
+ *  chargé à la demande là où c'est affiché (voir AccountScreen.tsx). */
+export async function getMyEmailStatus() {
+  const me = await api.me();
+  return { email: me.email, emailVerified: me.emailVerified };
+}
+
+/** Renvoie l'email de vérification (voir server/src/mail.ts) — utile si le
+ *  premier n'est jamais arrivé ou si son lien (24h) a expiré. */
+export async function resendVerificationEmail() {
+  return api.resendVerification();
 }
 
 /** Me déconnecte de tous mes appareils, y compris celui-ci. */

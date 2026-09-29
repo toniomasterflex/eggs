@@ -7,6 +7,7 @@
 // sur le compte (voir data/session.ts : useMyAppearance / updateSessionUser).
 
 import { useSyncExternalStore } from "react";
+import { emit, listen } from "@tauri-apps/api/event";
 import { api } from "./api";
 import type { ApiCreature, ApiEgg } from "./api";
 import { realtime } from "./realtime";
@@ -31,17 +32,32 @@ export function colorValue(id: string): string {
   return (PET_COLORS.find((c) => c.id === id) ?? PET_COLORS[0]).value;
 }
 
+/** La même couleur, en "r, g, b" — pour composer une rgba() en CSS (halo
+ *  coloré derrière un avatar, voir .row-avatar-tile dans ui.css). */
+export function colorRgb(id: string): string {
+  const hex = colorValue(id).replace("#", "");
+  const r = parseInt(hex.substring(0, 2), 16);
+  const g = parseInt(hex.substring(2, 4), 16);
+  const b = parseInt(hex.substring(4, 6), 16);
+  return `${r}, ${g}, ${b}`;
+}
+
 interface CollectionState {
   creatures: Creature[];
   eggs: Egg[];
   loaded: boolean;
-  pinnedCreatures: string[]; // créatures (non actives) posées sur l'herbe du bureau
+  // Créatures (non actives) posées sur l'herbe du bureau — aucune limite de
+  // nombre (jusqu'au 29/09/2026, plafonné à MAX_PINNED_CREATURES = 3 : une
+  // fenêtre Windows par créature, coûteuse au-delà d'une poignée ; toutes
+  // vivent maintenant dans une seule fenêtre partagée, voir
+  // pet/GroundPetsWindow.tsx et setup_pets côté Rust).
+  pinnedCreatures: string[];
 }
 
-/** Nombre maximum de créatures de la collection posées sur l'herbe en même temps. */
-export const MAX_PINNED_CREATURES = 3;
-
 const PINNED_CREATURES_KEY = "eggs.pinnedCreatures";
+// Evénement Tauri (voir writePinnedCreatures et le listen() plus bas) — même
+// mécanisme que PINNED_EVENT/FAVORITES_EVENT dans data/store.ts.
+const PINNED_CREATURES_EVENT = "eggs://pinned-creatures-changed";
 
 function readPinnedCreatures(): string[] {
   try {
@@ -49,7 +65,7 @@ function readPinnedCreatures(): string[] {
     if (raw) {
       const value = JSON.parse(raw);
       if (Array.isArray(value)) {
-        return value.filter((x) => typeof x === "string").slice(0, MAX_PINNED_CREATURES);
+        return value.filter((x) => typeof x === "string");
       }
     }
   } catch {
@@ -64,6 +80,10 @@ function writePinnedCreatures(list: string[]) {
   } catch {
     // pas grave
   }
+  // Voir le commentaire près de listen() plus bas : l'événement navigateur
+  // "storage" ne suffit pas entre fenêtres Tauri/WebView2 séparées, on
+  // utilise donc aussi le bus d'événements Tauri.
+  emit(PINNED_CREATURES_EVENT).catch(() => {});
 }
 
 let state: CollectionState = {
@@ -81,6 +101,26 @@ function notify() {
 function setState(patch: Partial<CollectionState>) {
   state = { ...state, ...patch };
   notify();
+}
+
+// `pinnedCreatures` est purement local (localStorage, aucun concept serveur
+// — contrairement à `creatures`/`eggs`, tenus à jour par la connexion temps
+// réel de CHAQUE fenêtre). Voir le commentaire équivalent (et plus détaillé)
+// dans data/store.ts (pinned/favorites) : sans notification inter-fenêtres,
+// poser une créature depuis « Ma collection » (fenêtre "main") ne faisait
+// rien apparaître dans la fenêtre partagée "pets" (voir
+// pet/GroundPetsWindow.tsx), qui a besoin de connaître `pinnedCreatures`
+// pour savoir quoi dessiner. L'événement navigateur "storage" (premier
+// essai) ne se propage pas de façon fiable entre fenêtres Tauri/WebView2
+// distinctes sur Windows ; on utilise donc le bus d'événements de Tauri
+// (emit/listen) comme mécanisme principal, avec "storage" gardé en secours.
+if (typeof window !== "undefined") {
+  window.addEventListener("storage", (e) => {
+    if (e.key === PINNED_CREATURES_KEY) setState({ pinnedCreatures: readPinnedCreatures() });
+  });
+  listen(PINNED_CREATURES_EVENT, () => {
+    setState({ pinnedCreatures: readPinnedCreatures() });
+  }).catch(() => {});
 }
 
 function subscribe(listener: () => void) {
@@ -209,7 +249,7 @@ export async function activateCreature(creatureId: string) {
 }
 
 /** Retire une créature de ma collection de l'herbe du bureau (bouton rond
- *  au-dessus d'elle, PinnedWindow.tsx — pas de chat pour mes propres
+ *  au-dessus d'elle, pet/GroundPet.tsx — pas de chat pour mes propres
  *  créatures, ce bouton lui sert à ranger celle-ci). */
 export function unpinCreature(creatureId: string) {
   const next = state.pinnedCreatures.filter((id) => id !== creatureId);
@@ -218,32 +258,20 @@ export function unpinCreature(creatureId: string) {
   setState({ pinnedCreatures: next });
 }
 
-// Id de la créature qu'on vient de faire glisser depuis « Ma collection » —
-// consommé une seule fois par App.tsx (takeDragPinId) pour savoir que la
-// fenêtre qu'il va créer doit tout de suite suivre la souris (voir
-// pin_pet/drag côté Rust) au lieu de réapparaître à une position mémorisée.
-let dragPinId: string | null = null;
-
-/** Pose une créature de ma collection (non active) sur l'herbe du bureau, en
- *  la faisant suivre la souris tout de suite — appelé quand l'utilisateur
- *  glisse une créature depuis la grille jusqu'en dehors de la fenêtre (voir
- *  CustomizeScreen.tsx). */
+/** Pose une créature de ma collection (non active) sur l'herbe du bureau —
+ *  appelé quand l'utilisateur glisse une créature depuis la grille jusqu'en
+ *  dehors de la fenêtre (voir CustomizeScreen.tsx). Jusqu'au 29/09/2026, la
+ *  nouvelle fenêtre de la créature suivait tout de suite la souris (native
+ *  window drag, voir l'historique de pin_pet côté Rust) ; depuis la fenêtre
+ *  partagée "pets", elle apparaît directement à une position mémorisée (ou
+ *  espacée par défaut, comme un ami épinglé) — CustomizeScreen.tsx déclenche
+ *  maintenant l'appel au RELÂCHEMENT du glissement plutôt qu'à son début. */
 export function pinCreatureByDrag(creatureId: string) {
   const { pinnedCreatures } = state;
-  if (pinnedCreatures.includes(creatureId) || pinnedCreatures.length >= MAX_PINNED_CREATURES) return;
-  dragPinId = creatureId;
+  if (pinnedCreatures.includes(creatureId)) return;
   const next = [...pinnedCreatures, creatureId];
   writePinnedCreatures(next);
   setState({ pinnedCreatures: next });
-}
-
-/** App.tsx seulement : true si cette créature vient d'être posée par
- *  glissement (et pas simplement restaurée au démarrage) — ne renvoie true
- *  qu'une fois. */
-export function takeDragPinId(creatureId: string): boolean {
-  if (dragPinId !== creatureId) return false;
-  dragPinId = null;
-  return true;
 }
 
 /** Offre un œuf de ma ferme à un ami : transfert immédiat, il l'a tout de
